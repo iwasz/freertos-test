@@ -26,6 +26,7 @@
  */
 /* Scheduler includes. */
 #include "FreeRTOS.h"
+#include "main.h"
 #include "task.h"
 
 /* App includes. */
@@ -34,15 +35,54 @@
 /* Demo includes. */
 #include "mpu_demo.h"
 
+/*****************************************************************************/
+
+#define mainFLASH_TASK_PRIORITY (tskIDLE_PRIORITY + 2)
+
+static void prvFlashTask1 (void *pvParameters)
+{
+        TickType_t xLastExecutionTime = xTaskGetTickCount ();
+
+        for (;;) {
+                 vTaskDelayUntil (&xLastExecutionTime, (TickType_t)1000 / portTICK_PERIOD_MS);
+                HAL_GPIO_TogglePin (GPIOA, GPIO_PIN_0);
+        }
+}
+
+/*---------------------------------------------------------------------------*/
+
+static void prvFlashTask2 (void *pvParameters)
+{
+        TickType_t xLastExecutionTime = xTaskGetTickCount ();
+
+        for (;;) {
+                vTaskDelayUntil (&xLastExecutionTime, (TickType_t)500 / portTICK_PERIOD_MS);
+                HAL_GPIO_TogglePin (GPIOA, GPIO_PIN_1);
+        }
+}
+
+/*---------------------------------------------------------------------------*/
+
+static void prvFlashTask3 (void *pvParameters)
+{
+        TickType_t xLastExecutionTime = xTaskGetTickCount ();
+
+        for (;;) {
+                vTaskDelayUntil (&xLastExecutionTime, (TickType_t)100 / portTICK_PERIOD_MS);
+                HAL_GPIO_TogglePin (GPIOA, GPIO_PIN_4);
+        }
+}
+
+/*****************************************************************************/
+
 void app_main (void)
 {
-        /* Start the MPU demo. */
-        vStartMPUDemo ();
+        xTaskCreate (prvFlashTask1, "Flash1", 64, NULL, mainFLASH_TASK_PRIORITY, NULL);
+        xTaskCreate (prvFlashTask2, "Flash2", 64, NULL, mainFLASH_TASK_PRIORITY, NULL);
+        xTaskCreate (prvFlashTask3, "Flash3", 64, NULL, mainFLASH_TASK_PRIORITY, NULL);
 
-        /* Start the scheduler. */
         vTaskStartScheduler ();
 
-        /* Should not get here. */
         for (;;)
                 ;
 }
@@ -118,4 +158,3 @@ void vApplicationGetTimerTaskMemory (StaticTask_t **ppxTimerTaskTCBBuffer, Stack
         configMINIMAL_STACK_SIZE is specified in words, not bytes. */
         *pulTimerTaskStackSize = configTIMER_TASK_STACK_DEPTH;
 }
-/*-----------------------------------------------------------*/

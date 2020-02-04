@@ -54,7 +54,7 @@ build, this configuration file has all options turned on. */
 #define configUSE_QUEUE_SETS 1
 #define configUSE_IDLE_HOOK 0
 #define configUSE_TICK_HOOK 0
-#define configCPU_CLOCK_HZ 48000000
+#define configCPU_CLOCK_HZ 80000000
 #define configMAX_PRIORITIES (5)
 #define configMINIMAL_STACK_SIZE ((unsigned short)256)
 #define configTOTAL_HEAP_SIZE ((size_t) (16 * 1024))

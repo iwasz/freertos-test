@@ -8,7 +8,7 @@ INCLUDE_DIRECTORIES("src/")
 
 SET (FREE_RTOS_ROOT "deps/FreeRTOS")
 INCLUDE_DIRECTORIES("${FREE_RTOS_ROOT}/FreeRTOS/Source/include")
-INCLUDE_DIRECTORIES("${FREE_RTOS_ROOT}/FreeRTOS/Source/portable/GCC/ARM_CM4_MPU")
+INCLUDE_DIRECTORIES("${FREE_RTOS_ROOT}/FreeRTOS/Source/portable/GCC/ARM_CM4F")
 
 
 # +--------------+
@@ -20,31 +20,31 @@ ADD_EXECUTABLE(${CMAKE_PROJECT_NAME}.elf
 #    Aplikacja z stm32L4
         "src/app_main.c"
         "src/app_main.h"
-        "src/mpu_demo.c"
-        "src/mpu_demo.h"
+#        "src/mpu_demo.c"
+#        "src/mpu_demo.h"
         "src/main.c"
 
         "src/etl_profile.h"
         "src/FreeRTOSConfig.h"
-        "src/memfault_handler.c"
+#        "src/memfault_handler.c"
         "src/stm32l4xx_hal_conf.h"
         "src/stm32l4xx_hal_msp.c"
         "src/stm32l4xx_hal_timebase_tim.c"
         "src/stm32l4xx_it.c"
         "src/system_stm32l4xx.c"
 
-        "${FREE_RTOS_ROOT}/FreeRTOS/Source/croutine.c"
-        "${FREE_RTOS_ROOT}/FreeRTOS/Source/event_groups.c"
+#        "${FREE_RTOS_ROOT}/FreeRTOS/Source/croutine.c"
+#        "${FREE_RTOS_ROOT}/FreeRTOS/Source/event_groups.c"
         "${FREE_RTOS_ROOT}/FreeRTOS/Source/list.c"
         "${FREE_RTOS_ROOT}/FreeRTOS/Source/queue.c"
-        "${FREE_RTOS_ROOT}/FreeRTOS/Source/stream_buffer.c"
+#        "${FREE_RTOS_ROOT}/FreeRTOS/Source/stream_buffer.c"
         "${FREE_RTOS_ROOT}/FreeRTOS/Source/tasks.c"
         "${FREE_RTOS_ROOT}/FreeRTOS/Source/timers.c"
 
-        "${FREE_RTOS_ROOT}/FreeRTOS/Source/portable/GCC/ARM_CM4_MPU/port.c"
-        "${FREE_RTOS_ROOT}/FreeRTOS/Source/portable/GCC/ARM_CM4_MPU/portmacro.h"
+        "${FREE_RTOS_ROOT}/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.c"
+        "${FREE_RTOS_ROOT}/FreeRTOS/Source/portable/GCC/ARM_CM4F/portmacro.h"
         "${FREE_RTOS_ROOT}/FreeRTOS/Source/portable/MemMang/heap_4.c"
-        "${FREE_RTOS_ROOT}/FreeRTOS/Source/portable/Common/mpu_wrappers.c"
+#        "${FREE_RTOS_ROOT}/FreeRTOS/Source/portable/Common/mpu_wrappers.c"
 
         "${STARTUP_CODE}"
 
