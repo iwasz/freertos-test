@@ -25,15 +25,11 @@
  * 1 tab == 4 spaces!
  */
 /* Scheduler includes. */
+#include "app_main.h"
 #include "FreeRTOS.h"
 #include "main.h"
 #include "task.h"
-
-/* App includes. */
-#include "app_main.h"
-
-/* Demo includes. */
-#include "mpu_demo.h"
+#include <stdlib.h>
 
 /*****************************************************************************/
 
@@ -44,7 +40,7 @@ static void prvFlashTask1 (void *pvParameters)
         TickType_t xLastExecutionTime = xTaskGetTickCount ();
 
         for (;;) {
-                 vTaskDelayUntil (&xLastExecutionTime, (TickType_t)1000 / portTICK_PERIOD_MS);
+                vTaskDelayUntil (&xLastExecutionTime, (TickType_t)1000 / portTICK_PERIOD_MS);
                 HAL_GPIO_TogglePin (GPIOA, GPIO_PIN_0);
         }
 }
@@ -66,6 +62,9 @@ static void prvFlashTask2 (void *pvParameters)
 static void prvFlashTask3 (void *pvParameters)
 {
         TickType_t xLastExecutionTime = xTaskGetTickCount ();
+        void *p = malloc (65536);
+        configASSERT(p);
+        free (p);
 
         for (;;) {
                 vTaskDelayUntil (&xLastExecutionTime, (TickType_t)100 / portTICK_PERIOD_MS);
@@ -77,9 +76,9 @@ static void prvFlashTask3 (void *pvParameters)
 
 void app_main (void)
 {
-        xTaskCreate (prvFlashTask1, "Flash1", 64, NULL, mainFLASH_TASK_PRIORITY, NULL);
-        xTaskCreate (prvFlashTask2, "Flash2", 64, NULL, mainFLASH_TASK_PRIORITY, NULL);
-        xTaskCreate (prvFlashTask3, "Flash3", 64, NULL, mainFLASH_TASK_PRIORITY, NULL);
+        xTaskCreate (prvFlashTask1, "Flash1", 64, NULL, 2, NULL);
+        xTaskCreate (prvFlashTask2, "Flash2", 64, NULL, 3, NULL);
+        xTaskCreate (prvFlashTask3, "Flash3", 64, NULL, 4, NULL);
 
         vTaskStartScheduler ();
 
@@ -158,3 +157,8 @@ void vApplicationGetTimerTaskMemory (StaticTask_t **ppxTimerTaskTCBBuffer, Stack
         configMINIMAL_STACK_SIZE is specified in words, not bytes. */
         *pulTimerTaskStackSize = configTIMER_TASK_STACK_DEPTH;
 }
+
+void *malloc (size_t size) { return pvPortMalloc (size); }
+void *calloc (size_t num, size_t size) { return NULL; }
+void *realloc (void *ptr, size_t size) { return NULL; }
+void free (void *ptr) { vPortFree (ptr); }

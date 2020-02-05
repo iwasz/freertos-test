@@ -32,6 +32,7 @@ ADD_EXECUTABLE(${CMAKE_PROJECT_NAME}.elf
         "src/stm32l4xx_hal_timebase_tim.c"
         "src/stm32l4xx_it.c"
         "src/system_stm32l4xx.c"
+        "src/sysmem.c"
 
 #        "${FREE_RTOS_ROOT}/FreeRTOS/Source/croutine.c"
 #        "${FREE_RTOS_ROOT}/FreeRTOS/Source/event_groups.c"
