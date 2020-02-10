@@ -12,10 +12,14 @@ int main (void)
         HAL_Init ();
         SystemClock_Config ();
 
+//        HAL_Delay(1000);
+//        HAL_PWREx_EnterSTOP2Mode(PWR_STOPENTRY_WFI);
+
         MX_GPIO_Init ();
         MX_USART1_UART_Init ();
 
         app_main ();
+
         while (1) {
         }
 }
@@ -124,21 +128,3 @@ void Error_Handler (void)
         while (1) {
         }
 }
-
-#ifdef USE_FULL_ASSERT
-/**
- * @brief  Reports the name of the source file and the source line number
- *         where the assert_param error has occurred.
- * @param  file: pointer to the source file name
- * @param  line: assert_param error line source number
- * @retval None
- */
-void assert_failed (char *file, uint32_t line)
-{
-        /* USER CODE BEGIN 6 */
-        /* User can add his own implementation to report the file name and line number,
-           tex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
-        /* USER CODE END 6 */
-}
-#endif /* USE_FULL_ASSERT */
-

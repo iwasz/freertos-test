@@ -1,30 +1,3 @@
-/*
- * FreeRTOS Kernel V10.2.1
- * Copyright (C) 2019 Amazon.com, Inc. or its affiliates.  All Rights Reserved.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of
- * this software and associated documentation files (the "Software"), to deal in
- * the Software without restriction, including without limitation the rights to
- * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
- * the Software, and to permit persons to whom the Software is furnished to do so,
- * subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
- * http://www.FreeRTOS.org
- * http://aws.amazon.com/freertos
- *
- * 1 tab == 4 spaces!
- */
-/* Scheduler includes. */
 #include "app_main.h"
 #include "FreeRTOS.h"
 #include "main.h"
@@ -33,10 +6,9 @@
 
 /*****************************************************************************/
 
-#define mainFLASH_TASK_PRIORITY (tskIDLE_PRIORITY + 2)
-
 static void prvFlashTask1 (void *pvParameters)
 {
+        (void)pvParameters;
         TickType_t xLastExecutionTime = xTaskGetTickCount ();
 
         for (;;) {
@@ -49,6 +21,7 @@ static void prvFlashTask1 (void *pvParameters)
 
 static void prvFlashTask2 (void *pvParameters)
 {
+        (void)pvParameters;
         TickType_t xLastExecutionTime = xTaskGetTickCount ();
 
         for (;;) {
@@ -61,10 +34,11 @@ static void prvFlashTask2 (void *pvParameters)
 
 static void prvFlashTask3 (void *pvParameters)
 {
+        (void)pvParameters;
         TickType_t xLastExecutionTime = xTaskGetTickCount ();
-        void *p = malloc (65536);
-        configASSERT(p);
-        free (p);
+        //        void *p = malloc (65536);
+        //        configASSERT(p);
+        //        free (p);
 
         for (;;) {
                 vTaskDelayUntil (&xLastExecutionTime, (TickType_t)100 / portTICK_PERIOD_MS);
@@ -82,8 +56,8 @@ void app_main (void)
 
         vTaskStartScheduler ();
 
-        for (;;)
-                ;
+        while (1) {
+        }
 }
 /*-----------------------------------------------------------*/
 
@@ -93,8 +67,9 @@ void vApplicationStackOverflowHook (TaskHandle_t pxTask, char *pcTaskName)
         function will automatically get called if a task overflows its stack. */
         (void)pxTask;
         (void)pcTaskName;
-        for (;;)
-                ;
+
+        while (1) {
+        }
 }
 /*-----------------------------------------------------------*/
 
@@ -103,8 +78,9 @@ void vApplicationMallocFailedHook (void)
         /* If configUSE_MALLOC_FAILED_HOOK is set to 1 then this function will
         be called automatically if a call to pvPortMalloc() fails.  pvPortMalloc()
         is called automatically when a task, queue or semaphore is created. */
-        for (;;)
-                ;
+
+        while (1) {
+        }
 }
 /*-----------------------------------------------------------*/
 
@@ -159,6 +135,19 @@ void vApplicationGetTimerTaskMemory (StaticTask_t **ppxTimerTaskTCBBuffer, Stack
 }
 
 void *malloc (size_t size) { return pvPortMalloc (size); }
-void *calloc (size_t num, size_t size) { return NULL; }
-void *realloc (void *ptr, size_t size) { return NULL; }
+
+void *calloc (size_t num, size_t size)
+{
+        (void)num;
+        (void)size;
+        return NULL;
+}
+
+void *realloc (void *ptr, size_t size)
+{
+        (void)ptr;
+        (void)size;
+        return NULL;
+}
+
 void free (void *ptr) { vPortFree (ptr); }
