@@ -195,12 +195,12 @@ void EXTI15_10_IRQHandler(void)
 //  /* USER CODE END TIM6_DAC_IRQn 1 */
 //}
 
-void LPTIM1_IRQHandler()
-{
-    //  HAL_TIM_IRQHandler(&htim6);
-    HAL_LPTIM_IRQHandler(&hlptim1);
+//void LPTIM1_IRQHandler()
+//{
+//    //  HAL_TIM_IRQHandler(&htim6);
+//    HAL_LPTIM_IRQHandler(&hlptim1);
 
-}
+//}
 
 
 /* USER CODE BEGIN 1 */
