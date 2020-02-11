@@ -182,7 +182,7 @@ void vPortSuppressTicksAndSleep (TickType_t xExpectedIdleTime)
                     is accounted for as best it can be, but using the tickless mode will
                     inevitably result in some tiny drift of the time maintained by the
                     kernel with respect to calendar time. */
-        hlptim1.Instance->CR = 0;
+//        hlptim1.Instance->CR = 0;
 
         // For my initial configuration this variable equals 1 (1000Hz / 1000Hz).
         unsigned short ulTimerCountsForOneTick = (configSYSTICK_CLOCK_HZ / configTICK_RATE_HZ);
@@ -221,7 +221,7 @@ void vPortSuppressTicksAndSleep (TickType_t xExpectedIdleTime)
         }
         else {
                 // Start LPTIM. ARR can be set only when the counter runs.
-                hlptim1.Instance->CR = LPTIM_CR_CNTSTRT | LPTIM_CR_ENABLE;
+//                hlptim1.Instance->CR = LPTIM_CR_CNTSTRT | LPTIM_CR_ENABLE;
 
                 /* Set the new reload value. */
                 hlptim1.Instance->ARR = ulReloadValue;
@@ -238,14 +238,14 @@ void vPortSuppressTicksAndSleep (TickType_t xExpectedIdleTime)
                 xModifiableIdleTime = xExpectedIdleTime;
 
                 // configPRE_SLEEP_PROCESSING (xModifiableIdleTime);
-                // enterSleep (xModifiableIdleTime);
-                if (xModifiableIdleTime > 0) {
-                        __asm volatile("dsb" ::: "memory");
-                        __asm volatile("wfi");
-                        __asm volatile("isb");
-                }
+                 enterSleep (xModifiableIdleTime);
+//                if (xModifiableIdleTime > 0) {
+//                        __asm volatile("dsb" ::: "memory");
+//                        __asm volatile("wfi");
+//                        __asm volatile("isb");
+//                }
                 // configPOST_SLEEP_PROCESSING (xExpectedIdleTime);
-                // returnFromSleep (xModifiableIdleTime);
+                 returnFromSleep (xModifiableIdleTime);
 
                 /* Re-enable interrupts to allow the interrupt that brought the MCU
                                 out of sleep mode to execute immediately.  see comments above
@@ -269,7 +269,7 @@ void vPortSuppressTicksAndSleep (TickType_t xExpectedIdleTime)
                                 be, but using the tickless mode will inevitably result in some tiny
                                 drift of the time maintained by the kernel with respect to calendar
                                 time*/
-                hlptim1.Instance->CR = 0;
+//                hlptim1.Instance->CR = 0;
 
                 /* Determine if the SysTick clock has already counted to zero and
                                 been set back to the current reload value (the reload back being
@@ -277,20 +277,20 @@ void vPortSuppressTicksAndSleep (TickType_t xExpectedIdleTime)
                                 to count to zero (in which case an interrupt other than the SysTick
                                 must have brought the system out of sleep mode). */
                 //                if ((portNVIC_SYSTICK_CTRL_REG & portNVIC_SYSTICK_COUNT_FLAG_BIT) != 0) {
-                uint32_t ulCalculatedLoadValue;
+//                uint32_t ulCalculatedLoadValue;
 
-                /* The tick interrupt is already pending, and the SysTick count
-                                    reloaded with ulReloadValue.  Reset the
-                                    portNVIC_SYSTICK_LOAD_REG with whatever remains of this tick
-                                    period. */
-                ulCalculatedLoadValue = (ulTimerCountsForOneTick - 1UL) - (ulReloadValue - getLpTimCounter ());
+//                /* The tick interrupt is already pending, and the SysTick count
+//                                    reloaded with ulReloadValue.  Reset the
+//                                    portNVIC_SYSTICK_LOAD_REG with whatever remains of this tick
+//                                    period. */
+//                ulCalculatedLoadValue = (ulTimerCountsForOneTick - 1UL) - (ulReloadValue - getLpTimCounter ());
 
-                /* Don't allow a tiny value, or values that have somehow
-                                    underflowed because the post sleep hook did something
-                                    that took too long. */
-                if ((ulCalculatedLoadValue < ulStoppedTimerCompensation) || (ulCalculatedLoadValue > ulTimerCountsForOneTick)) {
-                        ulCalculatedLoadValue = (ulTimerCountsForOneTick - 1UL);
-                }
+//                /* Don't allow a tiny value, or values that have somehow
+//                                    underflowed because the post sleep hook did something
+//                                    that took too long. */
+//                if ((ulCalculatedLoadValue < ulStoppedTimerCompensation) || (ulCalculatedLoadValue > ulTimerCountsForOneTick)) {
+//                        ulCalculatedLoadValue = (ulTimerCountsForOneTick - 1UL);
+//                }
 
                 // hlptim1.Instance->ARR = ulCalculatedLoadValue;
 
@@ -320,7 +320,7 @@ void vPortSuppressTicksAndSleep (TickType_t xExpectedIdleTime)
                                 again, then set portNVIC_SYSTICK_LOAD_REG back to its standard
                                 value. */
                 //                hlptim1.Instance->CNT = 0UL;
-                hlptim1.Instance->CR = LPTIM_CR_CNTSTRT | LPTIM_CR_ENABLE;
+//                hlptim1.Instance->CR = LPTIM_CR_CNTSTRT | LPTIM_CR_ENABLE;
                 vTaskStepTick (ulCompleteTickPeriods);
                 hlptim1.Instance->ARR = ulTimerCountsForOneTick - 1UL;
 
@@ -374,10 +374,14 @@ void vPortSetupTimerInterrupt ()
         HAL_NVIC_EnableIRQ (LPTIM1_IRQn);
 }
 
+/**
+ * Handles
+ */
 void LPTIM1_IRQHandler (void)
 {
         // Something other than ARR interrupt, ignore.
         if (__HAL_LPTIM_GET_FLAG (&hlptim1, LPTIM_FLAG_ARRM) == RESET) {
+
                 // Clear all but LPTIM_FLAG_ARRM
                 __HAL_LPTIM_CLEAR_FLAG (
                         &hlptim1, LPTIM_FLAG_DOWN | LPTIM_FLAG_UP | LPTIM_FLAG_ARROK | LPTIM_FLAG_CMPOK | LPTIM_FLAG_EXTTRIG | LPTIM_FLAG_CMPM);
@@ -406,7 +410,13 @@ void LPTIM1_IRQHandler (void)
 HAL_StatusTypeDef HAL_InitTick (uint32_t TickPriority)
 {
         (void)TickPriority;
-        // Freertos will init the main System Tick timer (which is LPTIM1 in this case).
+
+        /*
+         * Freertos will init the main System Tick timer (which is LPTIM1 in this case).
+         * TODO Until then, the stm32 cube (hal) will run without any clock so this is
+         * not good if any polling (with timeout) function is called. Program will hang
+         * in such a case.
+         */
         return HAL_OK;
 }
 
