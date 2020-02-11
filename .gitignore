@@ -4,3 +4,8 @@ doc
 misc/cubeMx/Inc
 misc/cubeMx/Src
 misc/cubeMx/.mxproject
+misc/cubeMx/Drivers/
+misc/cubeMx/EWARM/
+serial.c
+serial.txt
+serial2.c

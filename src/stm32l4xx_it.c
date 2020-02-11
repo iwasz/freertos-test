@@ -56,7 +56,8 @@
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
-extern TIM_HandleTypeDef htim6;
+//extern TIM_HandleTypeDef htim6;
+extern LPTIM_HandleTypeDef hlptim1;
 
 /* USER CODE BEGIN EV */
 
@@ -183,16 +184,24 @@ void EXTI15_10_IRQHandler(void)
 /**
   * @brief This function handles TIM6 global interrupt, DAC channel1 and channel2 underrun error interrupts.
   */
-void TIM6_DAC_IRQHandler(void)
+//void TIM6_DAC_IRQHandler(void)
+//{
+//  /* USER CODE BEGIN TIM6_DAC_IRQn 0 */
+
+//  /* USER CODE END TIM6_DAC_IRQn 0 */
+//  HAL_TIM_IRQHandler(&htim6);
+//  /* USER CODE BEGIN TIM6_DAC_IRQn 1 */
+
+//  /* USER CODE END TIM6_DAC_IRQn 1 */
+//}
+
+void LPTIM1_IRQHandler()
 {
-  /* USER CODE BEGIN TIM6_DAC_IRQn 0 */
+    //  HAL_TIM_IRQHandler(&htim6);
+    HAL_LPTIM_IRQHandler(&hlptim1);
 
-  /* USER CODE END TIM6_DAC_IRQn 0 */
-  HAL_TIM_IRQHandler(&htim6);
-  /* USER CODE BEGIN TIM6_DAC_IRQn 1 */
-
-  /* USER CODE END TIM6_DAC_IRQn 1 */
 }
+
 
 /* USER CODE BEGIN 1 */
 
