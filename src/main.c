@@ -14,6 +14,10 @@ int main (void)
         HAL_Init ();
         SystemClock_Config ();
 
+        /*
+         * According to port.c SysTick ISR should have the lowest priority, but
+         * I don't really understand why.
+         */
         HAL_NVIC_SetPriority (LPTIM1_IRQn, 0xf, 0);
         HAL_NVIC_EnableIRQ (LPTIM1_IRQn);
 
