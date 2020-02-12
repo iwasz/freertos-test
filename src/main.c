@@ -12,6 +12,7 @@ static void MX_GPIO_Init (void);
 static void MX_USART1_UART_Init (void);
 
 /*****************************************************************************/
+
 void SysTick_Handler () {}
 
 int main (void)
@@ -21,9 +22,9 @@ int main (void)
 
         // 10ms to disturb sleep mode and thus test if time is tracked correctly.
         // TODO I think that if SysTick were to be set to 1ms it would prevent normal operation of simple SLEEP mode. Verify.
-//        if (HAL_SYSTICK_Config (SystemCoreClock / 100UL) == HAL_OK) {
-//                HAL_NVIC_SetPriority (SysTick_IRQn, 0, 0);
-//        }
+        if (HAL_SYSTICK_Config (SystemCoreClock / 100UL) == HAL_OK) {
+                HAL_NVIC_SetPriority (SysTick_IRQn, 0, 0);
+        }
 
         MX_GPIO_Init ();
         MX_USART1_UART_Init ();
@@ -162,8 +163,8 @@ unsigned short getLpTimCounter ()
 
 void enterSleep (TickType_t tick)
 {
-                 HAL_PWREx_EnterSTOP1Mode (PWR_STOPENTRY_WFI);
-//        HAL_PWR_EnterSLEEPMode (PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+//                 HAL_PWREx_EnterSTOP1Mode (PWR_STOPENTRY_WFI);
+        HAL_PWR_EnterSLEEPMode (PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
 }
 
 void returnFromSleep (TickType_t tick) {}
@@ -314,22 +315,15 @@ void vPortSetupTimerInterrupt ()
                 Error_Handler ();
         }
 
-        // IER can be modified only if the timer is disabled. Make sure.
+        // IER can be modified only if the timer is disabled.
         hlptim1.Instance->CR = 0;
-
         // Make sure only the autoreload match interrupt is on.
-        __HAL_LPTIM_ENABLE_IT (&hlptim1, LPTIM_IT_ARRM);
-        __HAL_LPTIM_DISABLE_IT (&hlptim1, LPTIM_IT_ARROK);
-        __HAL_LPTIM_DISABLE_IT (&hlptim1, LPTIM_IT_DOWN);
-        __HAL_LPTIM_DISABLE_IT (&hlptim1, LPTIM_IT_UP);
-        __HAL_LPTIM_DISABLE_IT (&hlptim1, LPTIM_IT_CMPOK);
-        __HAL_LPTIM_DISABLE_IT (&hlptim1, LPTIM_IT_EXTTRIG);
-        __HAL_LPTIM_DISABLE_IT (&hlptim1, LPTIM_IT_CMPM);
-
-        // This starts the continuous mode
-        if (HAL_LPTIM_Counter_Start_IT (&hlptim1, (configSYSTICK_CLOCK_HZ / configTICK_RATE_HZ) - 1UL) != HAL_OK) {
-                Error_Handler ();
-        }
+        hlptim1.Instance->IER = 0x2;
+        hlptim1.Instance->CR = LPTIM_CR_ENABLE;
+        // Set the new reload value.
+        hlptim1.Instance->ARR = 0x1fff;
+        // Set to single mode
+        hlptim1.Instance->CR |= LPTIM_CR_SNGSTRT;
 
         // Not sure what priority it should get. SysTick gets 0 in HAL.
         HAL_NVIC_SetPriority (LPTIM1_IRQn, 0, 0);
