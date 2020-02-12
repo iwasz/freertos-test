@@ -14,6 +14,8 @@ static void MX_USART1_UART_Init (void);
 /*****************************************************************************/
 void SysTick_Handler () {}
 
+unsigned short getLpTimCounter ();
+
 int main (void)
 {
         HAL_Init ();
@@ -22,12 +24,94 @@ int main (void)
         HAL_StatusTypeDef status = HAL_OK;
 
         // 1ms to disturb sleep mode and thus test if time is tracked correctly
-        if (HAL_SYSTICK_Config (SystemCoreClock / 100UL) == HAL_OK) {
-                HAL_NVIC_SetPriority (SysTick_IRQn, 0, 0);
-        }
+        //        if (HAL_SYSTICK_Config (SystemCoreClock / 100UL) == HAL_OK) {
+        //                HAL_NVIC_SetPriority (SysTick_IRQn, 0, 0);
+        //        }
 
         // HAL_NVIC_DisableIRQ(SysTick_IRQn);
         //        HAL_PWREx_EnterSTOP1Mode(PWR_STOPENTRY_WFI);
+
+        /*---------------------------------------------------------------------------*/
+
+        __HAL_RCC_LPTIM1_CLK_ENABLE ();
+
+        hlptim1.Instance = LPTIM1;
+        hlptim1.Init.Clock.Source = LPTIM_CLOCKSOURCE_APBCLOCK_LPOSC; // LSI 0.032MHz
+        hlptim1.Init.Clock.Prescaler = LPTIM_PRESCALER_DIV32;         // Divide by 32 equals 1kHz
+        hlptim1.Init.Trigger.Source = LPTIM_TRIGSOURCE_SOFTWARE;
+        hlptim1.Init.OutputPolarity = LPTIM_OUTPUTPOLARITY_HIGH;
+        hlptim1.Init.UpdateMode = LPTIM_UPDATE_IMMEDIATE;
+        hlptim1.Init.CounterSource = LPTIM_COUNTERSOURCE_INTERNAL;
+        hlptim1.Init.Input1Source = LPTIM_INPUT1SOURCE_GPIO;
+        hlptim1.Init.Input2Source = LPTIM_INPUT2SOURCE_GPIO;
+
+        if (HAL_LPTIM_Init (&hlptim1) != HAL_OK) {
+                Error_Handler ();
+        }
+
+        for (int i = 0; i < 5; ++i) {
+                unsigned short aa = getLpTimCounter ();
+
+                if (aa) {
+                        break;
+                }
+        }
+
+        // IER can be modified only if the timer is disabled.
+        hlptim1.Instance->CR = 0;
+        // Make sure only the autoreload match interrupt is on.
+        hlptim1.Instance->IER = 0x2;
+        hlptim1.Instance->CR = LPTIM_CR_ENABLE;
+        // Set the new reload value.
+        hlptim1.Instance->ARR = 0x1fff;
+        // Set to single mode
+        hlptim1.Instance->CR |= LPTIM_CR_SNGSTRT;
+
+        /*
+         * According to port.c SysTick ISR should have the lowest priority, but
+         * I don't really understand why. In  FreeRTOSConfig.h I set the xPortSysTickHandler
+         * macro to LPTIM1_IRQHandler.
+         */
+        HAL_NVIC_SetPriority (LPTIM1_IRQn, 0, 0);
+        HAL_NVIC_EnableIRQ (LPTIM1_IRQn);
+
+        __disable_irq ();
+        hlptim1.Instance->ICR = 0x7f; // Clear all pending interrupts just to be sure.
+
+        int firstTest = 0;
+        while (1) {
+                unsigned short aa = getLpTimCounter ();
+                uint32_t crRegister = hlptim1.Instance->CR;
+                (void)crRegister;
+
+                uint32_t isrRegister = hlptim1.Instance->ISR;
+                (void)isrRegister;
+
+                if (aa >= 0xfff && !firstTest) { // We are far before it reaches the end (the ARR) which is set to 0xffff
+                        aa = getLpTimCounter (); // Counter gets cleared
+                        aa = getLpTimCounter ();
+                        aa = getLpTimCounter ();
+                        firstTest = 1;
+                        continue;
+                }
+
+                if (aa == 0 && (isrRegister & 0x02)) { // This tests if single mode has completed
+                        uint32_t isrRegister = hlptim1.Instance->ISR;
+                        hlptim1.Instance->CR &= ~1;          // Turn off
+                        aa = getLpTimCounter ();             // Counter gets cleared
+                        isrRegister = hlptim1.Instance->ISR; // Check the ISR
+                        hlptim1.Instance->ICR = 0x7f;        // Clear all iterrupt flags
+                        isrRegister = hlptim1.Instance->ISR; // Check the ISR once again
+                        aa = getLpTimCounter ();
+                        aa = getLpTimCounter ();
+                        break;
+                }
+        }
+
+        while (1) {
+        }
+
+        /*---------------------------------------------------------------------------*/
 
         MX_GPIO_Init ();
         MX_USART1_UART_Init ();
@@ -166,7 +250,7 @@ unsigned short getLpTimCounter ()
 
 void enterSleep (TickType_t tick)
 {
-//         HAL_PWREx_EnterSTOP1Mode (PWR_STOPENTRY_WFI);
+        //         HAL_PWREx_EnterSTOP1Mode (PWR_STOPENTRY_WFI);
         HAL_PWR_EnterSLEEPMode (PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
 }
 
@@ -267,8 +351,8 @@ void vPortSuppressTicksAndSleep (TickType_t xExpectedIdleTime)
 
                 unsigned short timCounterAfterSleep = getLpTimCounter ();
                 if (timCounterAfterSleep >= ulReloadValue) {
-//                                        if (timCounterAfterSleep == 0) {
-//                                        if ((hlptim1.Instance->CR & 0x06) == 0) {
+                        //                                        if (timCounterAfterSleep == 0) {
+                        //                                        if ((hlptim1.Instance->CR & 0x06) == 0) {
                         ulCompleteTickPeriods = xExpectedIdleTime - 1UL;
                 }
                 else {
