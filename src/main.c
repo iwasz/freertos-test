@@ -17,13 +17,20 @@ void SysTick_Handler () {}
 
 int main (void)
 {
+        /*
+         * This thread is useful:
+         * https://www.freertos.org/FreeRTOS_Support_Forum_Archive/November_2018/freertos_Tickless_idle_mode_and_wakeup_interrupts_30a858262fj.html
+         */
         HAL_Init ();
         SystemClock_Config ();
 
-        // 10ms to disturb sleep mode and thus test if time is tracked correctly.
-        // TODO I think that if SysTick were to be set to 1ms it would prevent normal operation of simple SLEEP mode. Verify.
-        if (HAL_SYSTICK_Config (SystemCoreClock / 100UL) == HAL_OK) {
-                HAL_NVIC_SetPriority (SysTick_IRQn, 0, 0);
+        /*
+         * 10ms to disturb sleep mode and thus test if time is tracked correctly.
+         * Shortest delay requested in a task is 100ms so we are going to be woken
+         * up 9 times on average.
+         */
+        if (HAL_SYSTICK_Config (SystemCoreClock / 50UL) == HAL_OK) {
+                HAL_NVIC_SetPriority (SysTick_IRQn, 1, 0);
         }
 
         MX_GPIO_Init ();
@@ -130,15 +137,6 @@ static void MX_GPIO_Init (void)
         HAL_GPIO_WritePin (GPIOA, GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_4, 0);
 }
 
-// void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef *htim)
-//{
-//        if (htim->Instance == TIM6) {
-//                HAL_IncTick ();
-//        }
-//}
-
-// void HAL_LPTIM_AutoReloadMatchCallback (LPTIM_HandleTypeDef *lptim) { HAL_IncTick (); }
-
 void Error_Handler (void)
 {
         while (1) {
@@ -154,8 +152,16 @@ unsigned short getLpTimCounter ()
 {
         unsigned short cnt = 0, prevCnt = 0;
 
-        while (prevCnt != (cnt = (unsigned short)(hlptim1.Instance->CNT))) {
+        /*
+         * If hlptim1.Instance->CNT returns 0 for the first time it is read, we would
+         * have a false positive. This is why we make sure there are at least 2 reads
+         * as the manual tells us.
+         */
+        int iterations = 0;
+
+        while ((prevCnt != (cnt = (unsigned short)(hlptim1.Instance->CNT))) || iterations < 1) {
                 prevCnt = cnt;
+                ++iterations;
         }
 
         return cnt;
@@ -163,17 +169,18 @@ unsigned short getLpTimCounter ()
 
 void enterSleep (TickType_t tick)
 {
-//                 HAL_PWREx_EnterSTOP1Mode (PWR_STOPENTRY_WFI);
+        (void)tick;
+        // HAL_PWREx_EnterSTOP1Mode (PWR_STOPENTRY_WFI);
         HAL_PWR_EnterSLEEPMode (PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
 }
 
-void returnFromSleep (TickType_t tick) {}
+void returnFromSleep (TickType_t tick) { (void)tick; }
 
 /* A fiddle factor to estimate the number of SysTick counts that would have
 occurred while the SysTick counter is stopped during tickless idle
 calculations. */
 #define portMISSED_COUNTS_FACTOR (45UL)
-static uint32_t ulStoppedTimerCompensation = portMISSED_COUNTS_FACTOR / (configCPU_CLOCK_HZ / configSYSTICK_CLOCK_HZ);
+// static uint32_t ulStoppedTimerCompensation = portMISSED_COUNTS_FACTOR / (configCPU_CLOCK_HZ / configSYSTICK_CLOCK_HZ);
 
 /**
  * Taken from the FreeRTOS itself and modified. I left the comments almost intact, so
@@ -207,22 +214,18 @@ void vPortSuppressTicksAndSleep (TickType_t xExpectedIdleTime)
         /* If a context switch is pending or a task is waiting for the scheduler
                     to be unsuspended then abandon the low power entry. */
         if (eTaskConfirmSleepModeStatus () == eAbortSleep) {
-                /* Restart from whatever is left in the count register to complete
-                                this tick period. */
-                //                hlptim1.Instance->ARR = getLpTimCounter ();
-
-                // Restart in continuous mode
-                hlptim1.Instance->CR = LPTIM_CR_CNTSTRT | LPTIM_CR_ENABLE;
-
+                hlptim1.Instance->CR = 0; // Stop, to be able to restart. Counter is now 0.
+                hlptim1.Instance->CR = LPTIM_CR_ENABLE;
                 /* Reset the reload register to the value required for normal tick periods. */
                 hlptim1.Instance->ARR = ulTimerCountsForOneTick - 1UL;
+                // Continuous mode once gain
+                hlptim1.Instance->CR |= LPTIM_CR_CNTSTRT;
 
                 /* Re-enable interrupts - see comments above the cpsid instruction() above. */
                 __asm volatile("cpsie i" ::: "memory");
         }
         else {
-                // Stop, to be able to restart.
-                hlptim1.Instance->CR = 0;
+                hlptim1.Instance->CR = 0; // Stop, to be able to restart. Counter is now 0.
                 hlptim1.Instance->CR = LPTIM_CR_ENABLE;
                 // Set the new reload value.
                 hlptim1.Instance->ARR = ulReloadValue;
@@ -253,7 +256,7 @@ void vPortSuppressTicksAndSleep (TickType_t xExpectedIdleTime)
 
                 /*
                  * Re-enable interrupts to allow the interrupt that brought the MCU
-                 * out of sleep mode to execute immediately. This will probably clear
+                 * out of sleep mode to execute immediately. This will  clear
                  * ISR flags as well if LPTIM1 IRQ is pending.
                  */
                 __asm volatile("cpsie i" ::: "memory");
@@ -343,8 +346,9 @@ void LPTIM1_IRQHandler (void)
 
                 // TODO we don't have to clear it since all IRQs are turned off except the ARRM. Verify.
                 // Clear all but LPTIM_FLAG_ARRM
-                __HAL_LPTIM_CLEAR_FLAG (
-                        &hlptim1, LPTIM_FLAG_DOWN | LPTIM_FLAG_UP | LPTIM_FLAG_ARROK | LPTIM_FLAG_CMPOK | LPTIM_FLAG_EXTTRIG | LPTIM_FLAG_CMPM);
+                //                __HAL_LPTIM_CLEAR_FLAG (
+                //                        &hlptim1, LPTIM_FLAG_DOWN | LPTIM_FLAG_UP | LPTIM_FLAG_ARROK | LPTIM_FLAG_CMPOK | LPTIM_FLAG_EXTTRIG |
+                //                        LPTIM_FLAG_CMPM);
                 return;
         }
 
