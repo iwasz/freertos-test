@@ -50,8 +50,8 @@ static void prvFlashTask3 (void *pvParameters)
 
 void app_main (void)
 {
-        xTaskCreate (prvFlashTask1, "Flash1", 64, NULL, 2, NULL);
-        xTaskCreate (prvFlashTask2, "Flash2", 64, NULL, 3, NULL);
+//        xTaskCreate (prvFlashTask1, "Flash1", 64, NULL, 2, NULL);
+//        xTaskCreate (prvFlashTask2, "Flash2", 64, NULL, 3, NULL);
         xTaskCreate (prvFlashTask3, "Flash3", 64, NULL, 4, NULL);
 
         vTaskStartScheduler ();
