@@ -29,7 +29,7 @@ int main (void)
          * Shortest delay requested in a task is 100ms so we are going to be woken
          * up 9 times on average.
          */
-        if (HAL_SYSTICK_Config (SystemCoreClock / 50UL) == HAL_OK) {
+        if (HAL_SYSTICK_Config (SystemCoreClock / 100UL) == HAL_OK) {
                 HAL_NVIC_SetPriority (SysTick_IRQn, 1, 0);
         }
 
@@ -164,8 +164,30 @@ unsigned short getLpTimCounter ()
                 ++iterations;
         }
 
+//        static unsigned short readouts[128];
+//        static int readoutNo = 0;
+
+//        if (readoutNo < 128) {
+//                readouts[readoutNo++] = cnt;
+//        }
+//        else {
+//                Error_Handler ();
+//        }
+
         return cnt;
 }
+
+// unsigned short getLpTimCounter ()
+//{
+//        unsigned short cnt, prevCnt;
+
+//        do {
+//                cnt = (unsigned short)(hlptim1.Instance->CNT);
+//                prevCnt = (unsigned short)(hlptim1.Instance->CNT);
+//        } while (cnt != prevCnt);
+
+//        return cnt;
+//}
 
 void enterSleep (TickType_t tick)
 {
@@ -283,7 +305,7 @@ void vPortSuppressTicksAndSleep (TickType_t xExpectedIdleTime)
                         ulCompleteTickPeriods = counterRegister * ulTimerCountsForOneTick;
                 }
 
-                // Show FreeRTOS how mych time has passed while it sleept.
+                // Show FreeRTOS how much time has passed while it sleept.
                 vTaskStepTick (ulCompleteTickPeriods);
 
                 hlptim1.Instance->CR = 0;                              // This clears the COUNTER
