@@ -6,6 +6,7 @@
 
 UART_HandleTypeDef huart1;
 LPTIM_HandleTypeDef hlptim1; // For system tick
+static uint32_t myTick = 0;
 
 void SystemClock_Config (void);
 static void MX_GPIO_Init (void);
@@ -20,6 +21,10 @@ int main (void)
 {
         HAL_Init ();
         SystemClock_Config ();
+        MX_GPIO_Init ();
+        MX_USART1_UART_Init ();
+
+        HAL_GPIO_WritePin (GPIOA, GPIO_PIN_1 | GPIO_PIN_4, 0);
 
         HAL_StatusTypeDef status = HAL_OK;
 
@@ -49,13 +54,13 @@ int main (void)
                 Error_Handler ();
         }
 
-        for (int i = 0; i < 5; ++i) {
-                unsigned short aa = getLpTimCounter ();
+        //        for (int i = 0; i < 5; ++i) {
+        //                unsigned short aa = getLpTimCounter ();
 
-                if (aa) {
-                        break;
-                }
-        }
+        //                if (aa) {
+        //                        break;
+        //                }
+        //        }
 
         // IER can be modified only if the timer is disabled.
         hlptim1.Instance->CR = 0;
@@ -63,9 +68,9 @@ int main (void)
         hlptim1.Instance->IER = 0x2;
         hlptim1.Instance->CR = LPTIM_CR_ENABLE;
         // Set the new reload value.
-        hlptim1.Instance->ARR = 0x1fff;
-        // Set to single mode
-        hlptim1.Instance->CR |= LPTIM_CR_SNGSTRT;
+        hlptim1.Instance->ARR = 0x0;
+        // Set to continuous mode
+        hlptim1.Instance->CR |= LPTIM_CR_CNTSTRT;
 
         /*
          * According to port.c SysTick ISR should have the lowest priority, but
@@ -75,7 +80,33 @@ int main (void)
         HAL_NVIC_SetPriority (LPTIM1_IRQn, 0, 0);
         HAL_NVIC_EnableIRQ (LPTIM1_IRQn);
 
-        __disable_irq ();
+        // Delay
+        for (int i = 0; i < 10000000; ++i) {
+                __asm("nop");
+        }
+
+        HAL_GPIO_TogglePin (GPIOA, GPIO_PIN_1);
+        hlptim1.Instance->ARR = 0x2;
+
+        // Delay
+        for (int i = 0; i < 10000000; ++i) {
+            __asm("nop");
+        }
+
+        HAL_GPIO_TogglePin (GPIOA, GPIO_PIN_1);
+        hlptim1.Instance->ARR = 0x0;
+
+
+        while (1) {
+                //                if (myTick % 20 == 0) { // every ~10ms
+                //                        hlptim1.Instance->ARR = 0x0;
+                //                }
+                //                else if (myTick % 10 == 0) { // every ~10ms
+                //                        hlptim1.Instance->ARR = 0x1;
+                //                }
+        }
+
+        __disanble_irq ();
         hlptim1.Instance->ICR = 0x7f; // Clear all pending interrupts just to be sure.
 
         int firstTest = 0;
@@ -112,9 +143,6 @@ int main (void)
         }
 
         /*---------------------------------------------------------------------------*/
-
-        MX_GPIO_Init ();
-        MX_USART1_UART_Init ();
 
         //        while (1){}
 
@@ -470,31 +498,13 @@ void LPTIM1_IRQHandler (void)
 
         // Something other than ARR interrupt, ignore.
         if ((isrFlags & LPTIM_FLAG_ARRM) == 0) {
-                // if (__HAL_LPTIM_GET_FLAG (&hlptim1, LPTIM_FLAG_ARRM) == RESET) {
-
-                // Clear all but LPTIM_FLAG_ARRM
-                __HAL_LPTIM_CLEAR_FLAG (
-                        &hlptim1, LPTIM_FLAG_DOWN | LPTIM_FLAG_UP | LPTIM_FLAG_ARROK | LPTIM_FLAG_CMPOK | LPTIM_FLAG_EXTTRIG | LPTIM_FLAG_CMPM);
                 return;
         }
 
         /* Clear Autoreload match flag */
         __HAL_LPTIM_CLEAR_FLAG (&hlptim1, LPTIM_FLAG_ARRM);
-
-        /* The SysTick runs at the lowest interrupt priority, so when this interrupt
-            executes all interrupts must be unmasked.  There is therefore no need to
-            save and then restore the interrupt mask value as its value is already
-            known. */
-        portDISABLE_INTERRUPTS ();
-        {
-                /* Increment the RTOS tick. */
-                if (xTaskIncrementTick () != pdFALSE) {
-                        /* A context switch is required.  Context switching is performed in
-                                    the PendSV interrupt.  Pend the PendSV interrupt. */
-                        portNVIC_INT_CTRL_REG = portNVIC_PENDSVSET_BIT;
-                }
-        }
-        portENABLE_INTERRUPTS ();
+        ++myTick;
+        HAL_GPIO_TogglePin (GPIOA, GPIO_PIN_4);
 }
 
 HAL_StatusTypeDef HAL_InitTick (uint32_t TickPriority)
