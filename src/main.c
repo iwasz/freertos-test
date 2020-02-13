@@ -41,8 +41,8 @@ int main (void)
         __HAL_RCC_LPTIM1_CLK_ENABLE ();
 
         hlptim1.Instance = LPTIM1;
-        hlptim1.Init.Clock.Source = LPTIM_CLOCKSOURCE_APBCLOCK_LPOSC; // LSI 0.032MHz
-        hlptim1.Init.Clock.Prescaler = LPTIM_PRESCALER_DIV32;         // Divide by 32 equals 1kHz
+        hlptim1.Init.Clock.Source = LPTIM_CLOCKSOURCE_APBCLOCK_LPOSC; // LSI frequency (32kHz throughout the docs) is between 31.04 and 32.96kHz
+        hlptim1.Init.Clock.Prescaler = LPTIM_PRESCALER_DIV2;          // Divide by 2 gives LPTIM_CLK = 16kHz
         hlptim1.Init.Trigger.Source = LPTIM_TRIGSOURCE_SOFTWARE;
         hlptim1.Init.OutputPolarity = LPTIM_OUTPUTPOLARITY_HIGH;
         hlptim1.Init.UpdateMode = LPTIM_UPDATE_IMMEDIATE;
@@ -68,7 +68,7 @@ int main (void)
         hlptim1.Instance->IER = 0x2;
         hlptim1.Instance->CR = LPTIM_CR_ENABLE;
         // Set the new reload value.
-        hlptim1.Instance->ARR = 0x0;
+        hlptim1.Instance->ARR = 16 - 1; // This gives us ARRM IRQ at 1kHz
         // Set to continuous mode
         hlptim1.Instance->CR |= LPTIM_CR_CNTSTRT;
 
@@ -86,16 +86,16 @@ int main (void)
         }
 
         HAL_GPIO_TogglePin (GPIOA, GPIO_PIN_1);
+        myTick = 0;
         hlptim1.Instance->ARR = 0x2;
 
         // Delay
-        for (int i = 0; i < 10000000; ++i) {
-            __asm("nop");
+        for (int i = 0; i < 300000; ++i) {
+                __asm("nop");
         }
 
         HAL_GPIO_TogglePin (GPIOA, GPIO_PIN_1);
         hlptim1.Instance->ARR = 0x0;
-
 
         while (1) {
                 //                if (myTick % 20 == 0) { // every ~10ms
