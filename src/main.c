@@ -174,7 +174,7 @@ unsigned short getLpTimCounter ()
 void enterSleep (TickType_t tick)
 {
         (void)tick;
-        // HAL_PWREx_EnterSTOP1Mode (PWR_STOPENTRY_WFI);
+        //         HAL_PWREx_EnterSTOP1Mode (PWR_STOPENTRY_WFI);
         HAL_PWR_EnterSLEEPMode (PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
 }
 
@@ -210,8 +210,13 @@ void setArr (unsigned short value)
  */
 void vPortSuppressTicksAndSleep (TickType_t xExpectedIdleTime)
 {
-        TickType_t ulReloadValue, ulCompleteTickPeriods = 0;
+        TickType_t ulReloadValue;
         TickType_t xModifiableIdleTime;
+
+//         To be sure, taken from Jay Kickliter
+//                if (!(hlptim1.Instance->ISR & LPTIM_FLAG_ARROK)) {
+//                        return;
+//                }
 
         /*
          * We don't have to "Make sure the SysTick reload value does not overflow the counter"
@@ -228,15 +233,16 @@ void vPortSuppressTicksAndSleep (TickType_t xExpectedIdleTime)
         }
 
         // We are counting up, so time left is calculated like this:
-        //        TickType_t timerCountsLeftToFullTick = TIMER_COUNTS_FOR_ONE_TICK - getLpTimCounter ();
-        //        assert (timerCountsLeftToFullTick >= 0 && timerCountsLeftToFullTick <= TIMER_COUNTS_FOR_ONE_TICK);
+        TickType_t timerCountsLeftToFullTick = TIMER_COUNTS_FOR_ONE_TICK - getLpTimCounter ();
+        assert (timerCountsLeftToFullTick >= 0 && timerCountsLeftToFullTick <= TIMER_COUNTS_FOR_ONE_TICK);
 
         /*
          * Calculate the value for ARR. required to wait xExpectedIdleTime
          * tick periods.  -1 is used because this code will execute part way
-         * through one of the tick periods.
+         * through one of the tick periods (and we don't want to declare more
+         * ticks than really passed)
          */
-        ulReloadValue = getLpTimCounter () + (TIMER_COUNTS_FOR_ONE_TICK * (xExpectedIdleTime /*- 1UL*/)) - 1;
+        ulReloadValue = timerCountsLeftToFullTick + (TIMER_COUNTS_FOR_ONE_TICK * (xExpectedIdleTime - 1UL)) - 1;
 
         /*
          * Enter a critical section but don't use the taskENTER_CRITICAL()
@@ -255,23 +261,18 @@ void vPortSuppressTicksAndSleep (TickType_t xExpectedIdleTime)
                 return;
         }
 
-         hlptim1.Instance->CR = 0; // Stop, to be able to restart. Counter is now 0.
-         hlptim1.Instance->CR = LPTIM_CR_ENABLE;
+        hlptim1.Instance->CR = 0; // Stop, to be able to restart. Counter is now 0.
+        hlptim1.Instance->CR = LPTIM_CR_ENABLE;
 
-        // Wait for ARROK
-        setArr (ulReloadValue);
-        // Wait for ARR to settle
+        /*
+         * CNT is now 0, so we have plenty of time to ARR to propagate. It takes 3 LPTIM_CLK
+         * cycles on average to update ARR, but we have 16 LPTIM_CLK cycles ahead of us.
+         */
+        hlptim1.Instance->ARR = ulReloadValue;
+        hlptim1.Instance->CR |= LPTIM_CR_CNTSTRT;
 
-         hlptim1.Instance->CR |= LPTIM_CR_CNTSTRT;
-
-        /* Sleep until something happens.  configPRE_SLEEP_PROCESSING() can
-                        set its parameter to 0 to indicate that its implementation contains
-                        its own wait for interrupt or wait for event instruction, and so wfi
-                        should not be executed again.  However, the original expected idle
-                        time variable must remain unmodified, so a copy is taken. */
         {
                 xModifiableIdleTime = xExpectedIdleTime;
-
                 // Enter the sleep mode using WFI.
                 enterSleep (xModifiableIdleTime);
                 returnFromSleep (xModifiableIdleTime);
@@ -289,7 +290,8 @@ void vPortSuppressTicksAndSleep (TickType_t xExpectedIdleTime)
         /*
          * Re-enable interrupts to allow the interrupt that brought the MCU
          * out of sleep mode to execute immediately. This will  clear
-         * ISR flags as well if LPTIM1 IRQ is pending.
+         * ISR flags as well, if LPTIM1 IRQ is pending. And it will increase
+         * the tick by 1 if LPTIM_IRQ woke us up.
          */
         __asm volatile("cpsie i" ::: "memory");
         __asm volatile("dsb");
@@ -300,28 +302,41 @@ void vPortSuppressTicksAndSleep (TickType_t xExpectedIdleTime)
          * and interrupts that execute while the clock is stopped will increase
          * any slippage between the time maintained by the RTOS and calendar
          * time.
+         *
+         * TODO not true? We don't stop LPTIM as they do with SysTick.
          */
         __asm volatile("cpsid i" ::: "memory");
         __asm volatile("dsb");
         __asm volatile("isb");
 
+        TickType_t ulCompleteTickPeriods = 0;
+
         // LPTIM counted to the ARR and reset the counter to 0.
         if (isrRegister & LPTIM_FLAG_ARRM) {
-                // We slept for the whole requested period of fime.
-                ulCompleteTickPeriods = xExpectedIdleTime - 1UL; // TODO why -1?
+                /*
+                 * We slept for the whole requested period of fime. -1 is because
+                 * we have been woken up by LPTIM IRQ, and we let the ISR to be run,
+                 * so it already increased the tick count by 1.
+                 */
+                ulCompleteTickPeriods = xExpectedIdleTime - 1UL;
         }
         else {
                 // LPTIM haven't finished the "single mode" cycle, so the sleep period was shorter.
-                ulCompleteTickPeriods = (counterRegister + TIMER_COUNTS_FOR_ARR_SET) / TIMER_COUNTS_FOR_ONE_TICK;
+                ulCompleteTickPeriods = (counterRegister /*+ TIMER_COUNTS_FOR_ARR_SET*/) / TIMER_COUNTS_FOR_ONE_TICK;
+                TickType_t ulModuloTicPeriods = (counterRegister /*+ TIMER_COUNTS_FOR_ARR_SET*/) % TIMER_COUNTS_FOR_ONE_TICK;
+
+                if (ulModuloTicPeriods >= TIMER_COUNTS_FOR_ONE_TICK / 2) {
+                        ++ulCompleteTickPeriods;
+                }
         }
 
         // Show FreeRTOS how much time has passed while it sleept.
         vTaskStepTick (ulCompleteTickPeriods);
 
-        hlptim1.Instance->CR = 0;                 // This clears the COUNTER
-        hlptim1.Instance->CR = LPTIM_CR_ENABLE;   // Restart the timer with counter == 0
-        setArr (TIMER_COUNTS_FOR_ONE_TICK - 1UL); // And restore ARR to usual "1-tick" period.
-        hlptim1.Instance->CR |= LPTIM_CR_CNTSTRT; // Restart the countinuous mode.
+        hlptim1.Instance->CR = 0;                                // This clears the COUNTER
+        hlptim1.Instance->CR = LPTIM_CR_ENABLE;                  // Restart the timer with counter == 0
+        hlptim1.Instance->ARR = TIMER_COUNTS_FOR_ONE_TICK - 1UL; // And restore ARR to usual "1-tick" period.
+        hlptim1.Instance->CR |= LPTIM_CR_CNTSTRT;                // Restart the countinuous mode.
 
         // Exit with interrupts enabled.
         __asm volatile("cpsie i" ::: "memory");
@@ -337,7 +352,7 @@ void vPortSetupTimerInterrupt ()
 
         hlptim1.Instance = LPTIM1;
         hlptim1.Init.Clock.Source = LPTIM_CLOCKSOURCE_APBCLOCK_LPOSC; // LSI frequency (32kHz throughout the docs) is between 31.04 and 32.96kHz
-        hlptim1.Init.Clock.Prescaler = LPTIM_PRESCALER_DIV2;         // Divide by 2 gives LPTIM_CLK = ~16kHz
+        hlptim1.Init.Clock.Prescaler = LPTIM_PRESCALER_DIV2;          // Divide by 2 gives LPTIM_CLK = ~16kHz
         hlptim1.Init.Trigger.Source = LPTIM_TRIGSOURCE_SOFTWARE;
         hlptim1.Init.OutputPolarity = LPTIM_OUTPUTPOLARITY_HIGH;
         hlptim1.Init.UpdateMode = LPTIM_UPDATE_IMMEDIATE;
