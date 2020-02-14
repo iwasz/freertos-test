@@ -34,6 +34,8 @@ ADD_EXECUTABLE(${CMAKE_PROJECT_NAME}.elf
         "src/system_stm32l4xx.c"
         "src/sysmem.c"
 
+#        "tickless.c"
+
 #        "${FREE_RTOS_ROOT}/FreeRTOS/Source/croutine.c"
 #        "${FREE_RTOS_ROOT}/FreeRTOS/Source/event_groups.c"
         "${FREE_RTOS_ROOT}/FreeRTOS/Source/list.c"

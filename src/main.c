@@ -201,6 +201,7 @@ void setArr (unsigned short value)
         }
 }
 
+#if 1
 /**
  * Taken from the FreeRTOS itself and modified. I left the comments almost intact, so
  * they refer to the SysTick timer instead of LPTIM1 which I use.
@@ -413,6 +414,7 @@ void LPTIM1_IRQHandler (void)
         }
         portENABLE_INTERRUPTS ();
 }
+#endif
 
 HAL_StatusTypeDef HAL_InitTick (uint32_t TickPriority)
 {

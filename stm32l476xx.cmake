@@ -7,7 +7,7 @@ SET (LINKER_SCRIPT "${CMAKE_CURRENT_LIST_DIR}/STM32L476RG_FLASH_SRAM2.ld")
 SET (CMAKE_SYSTEM_NAME Generic)
 SET (CMAKE_SYSTEM_PROCESSOR arm)
 
-SET(CMAKE_C_FLAGS "-std=gnu99 -fdata-sections -ffunction-sections -Wall -Werror=return-type" CACHE INTERNAL "c compiler flags")
+SET(CMAKE_C_FLAGS "-std=c11 -fdata-sections -ffunction-sections -Wall -Werror=return-type" CACHE INTERNAL "c compiler flags")
 SET(CMAKE_CXX_FLAGS "-std=c++17 -fno-rtti -fno-exceptions -Wall -fdata-sections -ffunction-sections -Wall -Werror=return-type" CACHE INTERNAL "cxx compiler flags")
 #SET(CMAKE_CXX_FLAGS "-mcpu=cortex-m4 -std=c++17 -fno-exceptions -Wall -fdata-sections -ffunction-sections -Wall -Werror=return-type" CACHE INTERNAL "cxx compiler flags")
 SET (CMAKE_EXE_LINKER_FLAGS "-T ${LINKER_SCRIPT} -specs=nosys.specs -Wl,--gc-sections" CACHE INTERNAL "exe link flags")

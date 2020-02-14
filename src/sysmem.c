@@ -52,7 +52,7 @@
 
 /* Variables */
 extern int errno;
-register char * stack_ptr asm("sp");
+//register char * stack_ptr asm("sp");
 
 /* Functions */
 
