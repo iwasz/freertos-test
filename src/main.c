@@ -199,7 +199,7 @@ void setArr (unsigned short value)
         }
 }
 
-#if 1
+#if 0
 /**
  * Taken from the FreeRTOS itself and modified. I left the comments almost intact, so
  * they refer to the SysTick timer instead of LPTIM1 which I use.
