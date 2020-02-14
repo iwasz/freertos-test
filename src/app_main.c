@@ -1,34 +1,67 @@
 #include "app_main.h"
 #include "FreeRTOS.h"
 #include "main.h"
+#include "semphr.h"
 #include "task.h"
 #include <stdlib.h>
+
+/*****************************************************************************/
+
+SemaphoreHandle_t semaphore = NULL;
+
+void SysTick_Handler ()
+{
+        if (!semaphore) {
+                return;
+        }
+
+        BaseType_t pxHigherPriorityTaskWoken;
+        if (xSemaphoreGiveFromISR (semaphore, &pxHigherPriorityTaskWoken) != pdTRUE) {
+                //                Error_Handler ();
+        }
+}
 
 /*****************************************************************************/
 
 static void prvFlashTask1 (void *pvParameters)
 {
         (void)pvParameters;
-        TickType_t xLastExecutionTime = xTaskGetTickCount ();
+        // TickType_t xLastExecutionTime = xTaskGetTickCount ();
 
         for (;;) {
-                vTaskDelayUntil (&xLastExecutionTime, (TickType_t)1000 / portTICK_PERIOD_MS);
-                HAL_GPIO_TogglePin (GPIOA, GPIO_PIN_0);
+
+                if (!semaphore) {
+                        continue;
+                }
+
+                if (xSemaphoreTake (semaphore, (TickType_t)100 / portTICK_PERIOD_MS) == pdTRUE) {
+                        HAL_GPIO_TogglePin (GPIOA, GPIO_PIN_1);
+
+                        static int i = 0;
+
+                        // Blocks every 5th time the semaphore is taken.
+                        if ((i++ % 5) == 0) {
+                                i = 1;
+
+                                for (int i = 0; i < 8000000; ++i) {
+                                }
+                        }
+                }
         }
 }
 
 /*---------------------------------------------------------------------------*/
 
-static void prvFlashTask2 (void *pvParameters)
-{
-        (void)pvParameters;
-        TickType_t xLastExecutionTime = xTaskGetTickCount ();
+//static void prvFlashTask2 (void *pvParameters)
+//{
+//        (void)pvParameters;
+//        TickType_t xLastExecutionTime = xTaskGetTickCount ();
 
-        for (;;) {
-                vTaskDelayUntil (&xLastExecutionTime, (TickType_t)500 / portTICK_PERIOD_MS);
-                HAL_GPIO_TogglePin (GPIOA, GPIO_PIN_1);
-        }
-}
+//        for (;;) {
+//                vTaskDelayUntil (&xLastExecutionTime, (TickType_t)500 / portTICK_PERIOD_MS);
+//                HAL_GPIO_TogglePin (GPIOA, GPIO_PIN_1);
+//        }
+//}
 
 /*---------------------------------------------------------------------------*/
 
@@ -50,9 +83,11 @@ static void prvFlashTask3 (void *pvParameters)
 
 void app_main (void)
 {
-//        xTaskCreate (prvFlashTask1, "Flash1", 64, NULL, 2, NULL);
-//        xTaskCreate (prvFlashTask2, "Flash2", 64, NULL, 3, NULL);
+        xTaskCreate (prvFlashTask1, "Flash1", 64, NULL, 2, NULL);
+        // xTaskCreate (prvFlashTask2, "Flash2", 64, NULL, 3, NULL);
         xTaskCreate (prvFlashTask3, "Flash3", 64, NULL, 4, NULL);
+
+        semaphore = xSemaphoreCreateBinary ();
 
         vTaskStartScheduler ();
 
