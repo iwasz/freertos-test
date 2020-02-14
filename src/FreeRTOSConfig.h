@@ -48,9 +48,12 @@ extern "C" {
 settings within this file.  Therefore, to ensure all the functions in port.c
 build, this configuration file has all options turned on. */
 
+#define configUSE_TICKLESS_IDLE 2
 #define configUSE_PREEMPTION 1
 #define configTICK_RATE_HZ (1000)
+#if configUSE_TICKLESS_IDLE == 2
 #define configSYSTICK_CLOCK_HZ (16000)
+#endif
 #define configUSE_PORT_OPTIMISED_TASK_SELECTION 1
 #define configUSE_QUEUE_SETS 1
 #define configUSE_IDLE_HOOK 0
@@ -70,7 +73,6 @@ build, this configuration file has all options turned on. */
 #define configUSE_MALLOC_FAILED_HOOK 1
 #define configUSE_APPLICATION_TASK_TAG 1
 #define configUSE_COUNTING_SEMAPHORES 1
-#define configUSE_TICKLESS_IDLE 2
 #define configNUM_THREAD_LOCAL_STORAGE_POINTERS 2
 
 /* This demo shows the MPU being used without any dynamic memory allocation. */
@@ -147,8 +149,13 @@ See http://www.FreeRTOS.org/RTOS-Cortex-M3-M4.html. */
 standard names. */
 #define xPortPendSVHandler PendSV_Handler
 #define vPortSVCHandler SVC_Handler
-//#define xPortSysTickHandler LPTIM1_IRQHandler
+
+#if configUSE_TICKLESS_IDLE == 2
 #define xPortSysTickHandler notUsedAtAll
+#else
+#define xPortSysTickHandler SysTick_Handler
+
+#endif
 
 /* Normal assert() semantics without relying on the provision of an assert.h
 header file. */

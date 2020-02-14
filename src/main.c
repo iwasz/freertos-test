@@ -6,18 +6,20 @@
 #include <assert.h>
 #include <stdint.h>
 
-static UART_HandleTypeDef huart1;
+UART_HandleTypeDef huart2;
 static LPTIM_HandleTypeDef hlptim1; // For system tick
 
 static void SystemClock_Config (void);
 static void MX_GPIO_Init (void);
-static void MX_USART1_UART_Init (void);
+static void MX_USART2_UART_Init (void);
 
 void setArr (unsigned short value);
 
 /*****************************************************************************/
 
+#if configUSE_TICKLESS_IDLE == 2
 void SysTick_Handler () {}
+#endif
 
 int main (void)
 {
@@ -28,6 +30,7 @@ int main (void)
         HAL_Init ();
         SystemClock_Config ();
 
+#if configUSE_TICKLESS_IDLE == 2
         /*
          * 10ms to disturb sleep mode and thus test if time is tracked correctly.
          * Shortest delay requested in a task is 100ms so we are going to be woken
@@ -36,9 +39,10 @@ int main (void)
         if (HAL_SYSTICK_Config (SystemCoreClock / 100UL) == HAL_OK) {
                 HAL_NVIC_SetPriority (SysTick_IRQn, 1, 0);
         }
+#endif
 
         MX_GPIO_Init ();
-        MX_USART1_UART_Init ();
+        MX_USART2_UART_Init ();
 
         //        while (1){}
 
@@ -106,20 +110,20 @@ void SystemClock_Config (void)
 
 /*****************************************************************************/
 
-static void MX_USART1_UART_Init (void)
+static void MX_USART2_UART_Init (void)
 {
-        huart1.Instance = USART1;
-        huart1.Init.BaudRate = 115200;
-        huart1.Init.WordLength = UART_WORDLENGTH_8B;
-        huart1.Init.StopBits = UART_STOPBITS_1;
-        huart1.Init.Parity = UART_PARITY_NONE;
-        huart1.Init.Mode = UART_MODE_TX_RX;
-        huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-        huart1.Init.OverSampling = UART_OVERSAMPLING_16;
-        huart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-        huart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+        huart2.Instance = USART2;
+        huart2.Init.BaudRate = 115200;
+        huart2.Init.WordLength = UART_WORDLENGTH_8B;
+        huart2.Init.StopBits = UART_STOPBITS_1;
+        huart2.Init.Parity = UART_PARITY_NONE;
+        huart2.Init.Mode = UART_MODE_TX_RX;
+        huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+        huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+        huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+        huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
 
-        if (HAL_UART_Init (&huart1) != HAL_OK) {
+        if (HAL_UART_Init (&huart2) != HAL_OK) {
                 Error_Handler ();
         }
 }
@@ -147,6 +151,7 @@ void Error_Handler (void)
         }
 }
 
+#if 1 && configUSE_TICKLESS_IDLE == 2
 /**
  * According to the stm32LPTIMER documentation reading CNT may return unreliable results when
  * LPTIM is fed with an asynchronous clock. I think this is my case, because LPTIM is run using
@@ -174,7 +179,7 @@ unsigned short getLpTimCounter ()
 void enterSleep (TickType_t tick)
 {
         (void)tick;
-        //         HAL_PWREx_EnterSTOP1Mode (PWR_STOPENTRY_WFI);
+//                 HAL_PWREx_EnterSTOP1Mode (PWR_STOPENTRY_WFI);
         HAL_PWR_EnterSLEEPMode (PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
 }
 
@@ -201,7 +206,6 @@ void setArr (unsigned short value)
         }
 }
 
-#if 1
 /**
  * Taken from the FreeRTOS itself and modified. I left the comments almost intact, so
  * they refer to the SysTick timer instead of LPTIM1 which I use.
@@ -214,10 +218,10 @@ void vPortSuppressTicksAndSleep (TickType_t xExpectedIdleTime)
         TickType_t ulReloadValue;
         TickType_t xModifiableIdleTime;
 
-//         To be sure, taken from Jay Kickliter
-//                if (!(hlptim1.Instance->ISR & LPTIM_FLAG_ARROK)) {
-//                        return;
-//                }
+        //         To be sure, taken from Jay Kickliter
+        //                if (!(hlptim1.Instance->ISR & LPTIM_FLAG_ARROK)) {
+        //                        return;
+        //                }
 
         /*
          * We don't have to "Make sure the SysTick reload value does not overflow the counter"
@@ -414,7 +418,6 @@ void LPTIM1_IRQHandler (void)
         }
         portENABLE_INTERRUPTS ();
 }
-#endif
 
 HAL_StatusTypeDef HAL_InitTick (uint32_t TickPriority)
 {
@@ -456,3 +459,4 @@ void HAL_ResumeTick (void)
 {
         // I can't let the stm32 cube to disable this iterrupt.
 }
+#endif
