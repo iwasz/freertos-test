@@ -17,7 +17,7 @@ void setArr (unsigned short value);
 
 /*****************************************************************************/
 
-void SysTick_Handler () {}
+void SysTick_Handler () { HAL_GPIO_TogglePin (GPIOA, GPIO_PIN_1); }
 
 int main (void)
 {
@@ -201,6 +201,7 @@ void setArr (unsigned short value)
         }
 }
 
+TickType_t tickPeriodsCorrection = 0;
 /**
  * Taken from the FreeRTOS itself and modified. I left the comments almost intact, so
  * they refer to the SysTick timer instead of LPTIM1 which I use.
@@ -213,10 +214,10 @@ void vPortSuppressTicksAndSleep (TickType_t xExpectedIdleTime)
         TickType_t ulReloadValue;
         TickType_t xModifiableIdleTime;
 
-//         To be sure, taken from Jay Kickliter
-//                if (!(hlptim1.Instance->ISR & LPTIM_FLAG_ARROK)) {
-//                        return;
-//                }
+        //         To be sure, taken from Jay Kickliter
+        //                if (!(hlptim1.Instance->ISR & LPTIM_FLAG_ARROK)) {
+        //                        return;
+        //                }
 
         /*
          * We don't have to "Make sure the SysTick reload value does not overflow the counter"
@@ -325,9 +326,26 @@ void vPortSuppressTicksAndSleep (TickType_t xExpectedIdleTime)
                 ulCompleteTickPeriods = (counterRegister /*+ TIMER_COUNTS_FOR_ARR_SET*/) / TIMER_COUNTS_FOR_ONE_TICK;
                 TickType_t ulModuloTicPeriods = (counterRegister /*+ TIMER_COUNTS_FOR_ARR_SET*/) % TIMER_COUNTS_FOR_ONE_TICK;
 
-                if (ulModuloTicPeriods >= TIMER_COUNTS_FOR_ONE_TICK / 2) {
+                // maybe some correction aggregated here?
+                tickPeriodsCorrection += ulModuloTicPeriods;
+
+                /*
+                 * The error (ie. the modulo division) aggregates over time, so here we compensate for this.
+                 * We simply store the error over time and if it rises over a treshold we add one tick. But
+                 * I don't understand why the best treshold is TIMER_COUNTS_FOR_ONE_TICK / 2 instead of the
+                 * whole TIMER_COUNTS_FOR_ONE_TICK.
+                 *
+                 * This condition is exactly like the original correction, but the error is aggregated.
+                 */
+                if (tickPeriodsCorrection >= TIMER_COUNTS_FOR_ONE_TICK / 2) {
+                        tickPeriodsCorrection -= TIMER_COUNTS_FOR_ONE_TICK / 2;
                         ++ulCompleteTickPeriods;
                 }
+
+                // This was the first implementation and errors summed up over time
+                // if (ulModuloTicPeriods >= TIMER_COUNTS_FOR_ONE_TICK / 2) {
+                //         ++ulCompleteTickPeriods;
+                // }
         }
 
         // Show FreeRTOS how much time has passed while it sleept.
