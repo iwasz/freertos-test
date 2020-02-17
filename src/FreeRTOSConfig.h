@@ -72,6 +72,7 @@ build, this configuration file has all options turned on. */
 #define configUSE_COUNTING_SEMAPHORES 1
 #define configUSE_TICKLESS_IDLE 2
 #define configNUM_THREAD_LOCAL_STORAGE_POINTERS 2
+#define configUSE_TASK_NOTIFICATIONS 1
 
 /* This demo shows the MPU being used without any dynamic memory allocation. */
 #define configSUPPORT_STATIC_ALLOCATION 1

@@ -201,7 +201,8 @@ void setArr (unsigned short value)
         }
 }
 
-TickType_t tickPeriodsCorrection = 0;
+static TickType_t tickPeriodsCorrection = 0;
+
 /**
  * Taken from the FreeRTOS itself and modified. I left the comments almost intact, so
  * they refer to the SysTick timer instead of LPTIM1 which I use.
@@ -213,11 +214,6 @@ void vPortSuppressTicksAndSleep (TickType_t xExpectedIdleTime)
 {
         TickType_t ulReloadValue;
         TickType_t xModifiableIdleTime;
-
-        //         To be sure, taken from Jay Kickliter
-        //                if (!(hlptim1.Instance->ISR & LPTIM_FLAG_ARROK)) {
-        //                        return;
-        //                }
 
         /*
          * We don't have to "Make sure the SysTick reload value does not overflow the counter"
@@ -323,10 +319,10 @@ void vPortSuppressTicksAndSleep (TickType_t xExpectedIdleTime)
         }
         else {
                 // LPTIM haven't finished the "single mode" cycle, so the sleep period was shorter.
-                ulCompleteTickPeriods = (counterRegister /*+ TIMER_COUNTS_FOR_ARR_SET*/) / TIMER_COUNTS_FOR_ONE_TICK;
-                TickType_t ulModuloTicPeriods = (counterRegister /*+ TIMER_COUNTS_FOR_ARR_SET*/) % TIMER_COUNTS_FOR_ONE_TICK;
+                ulCompleteTickPeriods = counterRegister / TIMER_COUNTS_FOR_ONE_TICK;
+                TickType_t ulModuloTicPeriods = counterRegister % TIMER_COUNTS_FOR_ONE_TICK;
 
-                // maybe some correction aggregated here?
+                // Aggregated correction.
                 tickPeriodsCorrection += ulModuloTicPeriods;
 
                 /*
