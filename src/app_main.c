@@ -69,9 +69,6 @@ static void prvFlashTask3 (void *pvParameters)
 {
         (void)pvParameters;
         TickType_t xLastExecutionTime = xTaskGetTickCount ();
-        //        void *p = malloc (65536);
-        //        configASSERT(p);
-        //        free (p);
 
         for (;;) {
                 vTaskDelayUntil (&xLastExecutionTime, (TickType_t)100 / portTICK_PERIOD_MS);
