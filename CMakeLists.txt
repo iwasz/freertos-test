@@ -11,30 +11,21 @@ INCLUDE_DIRECTORIES("${FREE_RTOS_ROOT}/FreeRTOS/Source/include")
 INCLUDE_DIRECTORIES("${FREE_RTOS_ROOT}/FreeRTOS/Source/portable/GCC/ARM_CM4F")
 
 
-# +--------------+
-# | STM Cube     |
-# +--------------+
-# Workaround : rozdzielenie kodu C++ i C powoduje, że QTCreator dobrze parsuje nagłówki C++. Bez tego podziału QTCreator się gubi.
-#add_library ("stm" STATIC
 ADD_EXECUTABLE(${CMAKE_PROJECT_NAME}.elf
-#    Aplikacja z stm32L4
         "src/app_main.c"
         "src/app_main.h"
-#        "src/mpu_demo.c"
-#        "src/mpu_demo.h"
         "src/main.c"
+        "src/tickless.c"
 
         "src/etl_profile.h"
         "src/FreeRTOSConfig.h"
-#        "src/memfault_handler.c"
         "src/stm32l4xx_hal_conf.h"
         "src/stm32l4xx_hal_msp.c"
-        "src/stm32l4xx_hal_timebase_tim.c"
         "src/stm32l4xx_it.c"
         "src/system_stm32l4xx.c"
-        "src/sysmem.c"
-
-#        "tickless.c"
+        "src/libc-compat.c"
+        "src/hal-compat.c"
+        "src/freertos-hooks.c"
 
 #        "${FREE_RTOS_ROOT}/FreeRTOS/Source/croutine.c"
 #        "${FREE_RTOS_ROOT}/FreeRTOS/Source/event_groups.c"
@@ -43,12 +34,9 @@ ADD_EXECUTABLE(${CMAKE_PROJECT_NAME}.elf
 #        "${FREE_RTOS_ROOT}/FreeRTOS/Source/stream_buffer.c"
         "${FREE_RTOS_ROOT}/FreeRTOS/Source/tasks.c"
         "${FREE_RTOS_ROOT}/FreeRTOS/Source/timers.c"
-
         "${FREE_RTOS_ROOT}/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.c"
         "${FREE_RTOS_ROOT}/FreeRTOS/Source/portable/GCC/ARM_CM4F/portmacro.h"
         "${FREE_RTOS_ROOT}/FreeRTOS/Source/portable/MemMang/heap_4.c"
-#        "${FREE_RTOS_ROOT}/FreeRTOS/Source/portable/Common/mpu_wrappers.c"
-
         "${STARTUP_CODE}"
 
         "deps/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_adc.c"
@@ -256,16 +244,8 @@ ADD_EXECUTABLE(${CMAKE_PROJECT_NAME}.elf
 
 )
 
-
-#TARGET_LINK_LIBRARIES (${CMAKE_PROJECT_NAME}.elf -Wl,--whole-archive stm -Wl,--no-whole-archive)
-
 FIND_PROGRAM (OPENOCD openocd)
 ADD_CUSTOM_TARGET("upload" DEPENDS ${CMAKE_PROJECT_NAME}.elf COMMAND ${OPENOCD} -f /home/iwasz/local/share/openocd/scripts/interface/stlink.cfg -f /home/iwasz/local/share/openocd/scripts/target/stm32l4x.cfg -c 'program ${CMAKE_PROJECT_NAME}.elf verify reset exit')
 ADD_CUSTOM_TARGET("debug" DEPENDS ${CMAKE_PROJECT_NAME}.elf COMMAND ${OPENOCD} -f /home/iwasz/local/share/openocd/scripts/interface/stlink.cfg -f /home/iwasz/local/share/openocd/scripts/target/stm32l4x.cfg)
 
 ADD_CUSTOM_TARGET(${CMAKE_PROJECT_NAME}.bin ALL DEPENDS ${CMAKE_PROJECT_NAME}.elf COMMAND ${CMAKE_OBJCOPY} -Obinary ${CMAKE_PROJECT_NAME}.elf ${CMAKE_PROJECT_NAME}.bin)
-
-FIND_PROGRAM (DD dd)
-# WARNING! dd parameters has to match linker script memory areas sizes which in turn has to match sector sizes in the µC flash.
-ADD_CUSTOM_TARGET(main.bin ALL DEPENDS ${CMAKE_PROJECT_NAME}.bin COMMAND ${DD} if=${CMAKE_PROJECT_NAME}.bin of=main.bin bs=1 count=32k)
-ADD_CUSTOM_TARGET(radio.bin ALL DEPENDS ${CMAKE_PROJECT_NAME}.bin COMMAND ${DD} if=${CMAKE_PROJECT_NAME}.bin of=radio.bin skip=32k bs=1 count=32k)
