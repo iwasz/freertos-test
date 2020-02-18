@@ -48,7 +48,7 @@ extern "C" {
 settings within this file.  Therefore, to ensure all the functions in port.c
 build, this configuration file has all options turned on. */
 
-#define configUSE_TICKLESS_IDLE 2
+#define configUSE_TICKLESS_IDLE 0
 #define configUSE_PREEMPTION 1
 #define configTICK_RATE_HZ (1000)
 #if configUSE_TICKLESS_IDLE == 2

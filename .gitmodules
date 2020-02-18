@@ -1,3 +1,15 @@
 [submodule "deps/FreeRTOS"]
 	path = deps/FreeRTOS
 	url = git@github.com:FreeRTOS/FreeRTOS.git
+[submodule "deps/fmt"]
+	path = deps/fmt
+	url = git@github.com:fmtlib/fmt.git
+[submodule "deps/etl"]
+	path = deps/etl
+	url = git@github.com:ETLCPP/etl.git
+[submodule "deps/GSL"]
+	path = deps/GSL
+	url = git@github.com:microsoft/GSL.git
+[submodule "deps/Catch2"]
+	path = deps/Catch2
+	url = git@github.com:catchorg/Catch2.git

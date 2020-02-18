@@ -10,13 +10,15 @@ SET (FREE_RTOS_ROOT "deps/FreeRTOS")
 INCLUDE_DIRECTORIES("${FREE_RTOS_ROOT}/FreeRTOS/Source/include")
 INCLUDE_DIRECTORIES("${FREE_RTOS_ROOT}/FreeRTOS/Source/portable/GCC/ARM_CM4F")
 
+INCLUDE_DIRECTORIES("deps/etl/include/")
+include_directories("deps/GSL/include")
+include_directories("deps/fmt/include")
 
 ADD_EXECUTABLE(${CMAKE_PROJECT_NAME}.elf
-        "src/app_main.c"
+        "src/app_main.cc"
         "src/app_main.h"
         "src/main.cc"
         "src/tickless.c"
-
         "src/etl_profile.h"
         "src/FreeRTOSConfig.h"
         "src/stm32l4xx_hal_conf.h"
@@ -27,17 +29,18 @@ ADD_EXECUTABLE(${CMAKE_PROJECT_NAME}.elf
         "src/hal-compat.c"
         "src/freertos-hooks.c"
 
-#        "${FREE_RTOS_ROOT}/FreeRTOS/Source/croutine.c"
-#        "${FREE_RTOS_ROOT}/FreeRTOS/Source/event_groups.c"
+        "src/logging.cc"
+
         "${FREE_RTOS_ROOT}/FreeRTOS/Source/list.c"
         "${FREE_RTOS_ROOT}/FreeRTOS/Source/queue.c"
-#        "${FREE_RTOS_ROOT}/FreeRTOS/Source/stream_buffer.c"
         "${FREE_RTOS_ROOT}/FreeRTOS/Source/tasks.c"
         "${FREE_RTOS_ROOT}/FreeRTOS/Source/timers.c"
         "${FREE_RTOS_ROOT}/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.c"
         "${FREE_RTOS_ROOT}/FreeRTOS/Source/portable/GCC/ARM_CM4F/portmacro.h"
         "${FREE_RTOS_ROOT}/FreeRTOS/Source/portable/MemMang/heap_4.c"
         "${STARTUP_CODE}"
+
+        "deps/fmt/src/format.cc"
 
         "deps/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_adc.c"
         "deps/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_adc_ex.c"
