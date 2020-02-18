@@ -1,4 +1,3 @@
-#include "app_main.h"
 #include <FreeRTOS.h>
 #include <queue.h>
 #include <stdlib.h>

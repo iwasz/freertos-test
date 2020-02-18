@@ -1,5 +1,4 @@
 #include "FreeRTOS.h"
-#include "app_main.h"
 #include "portmacro.h"
 #include "task.h"
 #include <assert.h>

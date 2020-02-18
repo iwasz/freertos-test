@@ -1,16 +1,25 @@
+/****************************************************************************
+ *                                                                          *
+ *  Author : lukasz.iwaszkiewicz@gmail.com                                  *
+ *  ~~~~~~~~                                                                *
+ *  License : see COPYING file for details.                                 *
+ *  ~~~~~~~~~                                                               *
+ ****************************************************************************/
+
+#include "app_main.h"
 #include <FreeRTOS.h>
-#include <app_main.h>
-#include <assert.h>
+#include <cassert>
+#include <cstdint>
 #include <portmacro.h>
-#include <stdint.h>
 #include <stm32l4xx_hal.h>
 #include <task.h>
 
 UART_HandleTypeDef huart2;
 
-extern void SystemClock_Config (void);
-static void MX_GPIO_Init (void);
-static void MX_USART2_UART_Init (void);
+static void MX_GPIO_Init ();
+static void MX_USART2_UART_Init ();
+extern "C" void SystemClock_Config ();
+extern "C" void Error_Handler ();
 
 /*****************************************************************************/
 
@@ -18,7 +27,7 @@ static void MX_USART2_UART_Init (void);
 void SysTick_Handler () { HAL_GPIO_TogglePin (GPIOA, GPIO_PIN_1); }
 #endif
 
-int main (void)
+int main ()
 {
         /*
          * This thread is useful:
@@ -32,8 +41,10 @@ int main (void)
          * 10ms to disturb sleep mode and thus test if time is tracked correctly.
          * Shortest delay requested in a task is 100ms so we are going to be woken
          * up 9 times on average.
+         *
+         * Changed to some other values.
          */
-        if (HAL_SYSTICK_Config (SystemCoreClock / 1000UL) == HAL_OK) {
+        if (HAL_SYSTICK_Config (SystemCoreClock / 100UL) == HAL_OK) {
                 HAL_NVIC_SetPriority (SysTick_IRQn, 1, 0);
         }
 #endif
@@ -43,13 +54,13 @@ int main (void)
 
         app_main ();
 
-        while (1) {
+        while (true) {
         }
 }
 
 /*****************************************************************************/
 
-static void MX_USART2_UART_Init (void)
+static void MX_USART2_UART_Init ()
 {
         huart2.Instance = USART2;
         huart2.Init.BaudRate = 115200;
@@ -69,7 +80,7 @@ static void MX_USART2_UART_Init (void)
 
 /*****************************************************************************/
 
-static void MX_GPIO_Init (void)
+static void MX_GPIO_Init ()
 {
         GPIO_InitTypeDef GPIO_InitStruct = {0};
 
@@ -81,5 +92,5 @@ static void MX_GPIO_Init (void)
         GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
         HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
 
-        HAL_GPIO_WritePin (GPIOA, GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_4, 0);
+        HAL_GPIO_WritePin (GPIOA, GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_4, GPIO_PIN_SET);
 }

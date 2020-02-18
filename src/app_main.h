@@ -31,6 +31,6 @@
 /**
  * @brief Main app entry point.
  */
-void app_main( void );
+extern "C" void app_main (void);
 
 #endif /* __APP_MAIN_H__ */
