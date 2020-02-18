@@ -9,3 +9,9 @@ misc/cubeMx/EWARM/
 serial.c
 serial.txt
 serial2.c
+.clangd
+.vscode
+build
+compile_commands.json
+tickless-jays.c
+lptimTick-jeffs.c

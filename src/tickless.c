@@ -65,9 +65,6 @@ void returnFromSleep (TickType_t tick) { (void)tick; }
  */
 void vPortSuppressTicksAndSleep (TickType_t xExpectedIdleTime)
 {
-        TickType_t ulReloadValue;
-        TickType_t xModifiableIdleTime;
-
         /*
          * We don't have to "Make sure the SysTick reload value does not overflow the counter"
          * since TickType_t == unsigned short which is the same type as LPTIM1 ARR register
@@ -90,7 +87,11 @@ void vPortSuppressTicksAndSleep (TickType_t xExpectedIdleTime)
          * through one of the tick periods (and we don't want to declare more
          * ticks than really passed)
          */
-        ulReloadValue = timerCountsLeftToFullTick + (TIMER_COUNTS_FOR_ONE_TICK * (xExpectedIdleTime - 1UL)) - 1;
+        uint32_t ulReloadValue = timerCountsLeftToFullTick + (TIMER_COUNTS_FOR_ONE_TICK * (xExpectedIdleTime - 1UL)) - 1;
+
+        if (ulReloadValue > UINT16_MAX) {
+                ulReloadValue = UINT16_MAX;
+        }
 
         /*
          * Enter a critical section but don't use the taskENTER_CRITICAL()
@@ -120,7 +121,7 @@ void vPortSuppressTicksAndSleep (TickType_t xExpectedIdleTime)
         hlptim1.Instance->CR |= LPTIM_CR_CNTSTRT;
 
         {
-                xModifiableIdleTime = xExpectedIdleTime;
+                TickType_t xModifiableIdleTime = xExpectedIdleTime;
                 // Enter the sleep mode using WFI.
                 enterSleep (xModifiableIdleTime);
                 returnFromSleep (xModifiableIdleTime);

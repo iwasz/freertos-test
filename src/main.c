@@ -33,7 +33,7 @@ int main (void)
          * Shortest delay requested in a task is 100ms so we are going to be woken
          * up 9 times on average.
          */
-        if (HAL_SYSTICK_Config (SystemCoreClock / 100UL) == HAL_OK) {
+        if (HAL_SYSTICK_Config (SystemCoreClock / 1000UL) == HAL_OK) {
                 HAL_NVIC_SetPriority (SysTick_IRQn, 1, 0);
         }
 #endif

@@ -9,7 +9,7 @@ extern UART_HandleTypeDef huart2;
 QueueHandle_t printQueue = NULL;
 
 typedef char Message[32];
-#define LOGGING
+// #define LOGGING
 
 /*****************************************************************************/
 
@@ -82,7 +82,7 @@ static void prvFlashTask3 (void *pvParameters)
         //        free (p);
 
         for (;;) {
-                vTaskDelayUntil (&xLastExecutionTime, (TickType_t)500 / portTICK_PERIOD_MS);
+                vTaskDelayUntil (&xLastExecutionTime, (TickType_t)100 / portTICK_PERIOD_MS);
                 HAL_GPIO_TogglePin (GPIOA, GPIO_PIN_4);
 
 #ifdef LOGGING
@@ -103,8 +103,8 @@ void app_main (void)
 #ifdef LOGGING
         xTaskCreate (printTask, "print", 64, NULL, 0, NULL);
 #endif
-        xTaskCreate (prvFlashTask1, "task1", 64, NULL, 1, NULL);
-        xTaskCreate (prvFlashTask2, "task2", 64, NULL, 1, NULL);
+        // xTaskCreate (prvFlashTask1, "task1", 64, NULL, 1, NULL);
+        // xTaskCreate (prvFlashTask2, "task2", 64, NULL, 1, NULL);
         xTaskCreate (prvFlashTask3, "task3", 64, NULL, 1, NULL);
 
         printQueue = xQueueCreate (8, sizeof (Message));

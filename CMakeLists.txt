@@ -15,7 +15,9 @@ ADD_EXECUTABLE(${CMAKE_PROJECT_NAME}.elf
         "src/app_main.c"
         "src/app_main.h"
         "src/main.c"
-        "src/tickless.c"
+        # "src/tickless.c"
+        "tickless-jays.c"
+        # "lptimTick-jeffs.c"
 
         "src/etl_profile.h"
         "src/FreeRTOSConfig.h"
