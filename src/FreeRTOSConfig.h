@@ -48,12 +48,25 @@ extern "C" {
 settings within this file.  Therefore, to ensure all the functions in port.c
 build, this configuration file has all options turned on. */
 
-#define configUSE_TICKLESS_IDLE 0
+#define configUSE_TICKLESS_IDLE 2
 #define configUSE_PREEMPTION 1
 #define configTICK_RATE_HZ (1000)
-#if configUSE_TICKLESS_IDLE == 2
+
+#if configUSE_TICKLESS_IDLE == 0
 #define configSYSTICK_CLOCK_HZ (16000)
+// Undef this if Jeff's tickless implementation is used
 #endif
+
+#define configTICK_USES_LSI 1
+
+#ifndef configTICK_USES_LSI
+#if configUSE_TICKLESS_IDLE == 2
+#define xPortSysTickHandler notUsedAtAll
+#else
+#define xPortSysTickHandler SysTick_Handler
+#endif
+#endif
+
 #define configUSE_PORT_OPTIMISED_TASK_SELECTION 1
 #define configUSE_QUEUE_SETS 1
 #define configUSE_IDLE_HOOK 0
@@ -61,7 +74,7 @@ build, this configuration file has all options turned on. */
 #define configCPU_CLOCK_HZ 80000000
 #define configMAX_PRIORITIES (5)
 #define configMINIMAL_STACK_SIZE ((unsigned short)256)
-#define configTOTAL_HEAP_SIZE ((size_t) (0x16000))
+#define configTOTAL_HEAP_SIZE ((size_t) (0x15000))
 #define configMAX_TASK_NAME_LEN (10)
 #define configUSE_TRACE_FACILITY 1
 #define configUSE_16_BIT_TICKS 1
@@ -150,13 +163,6 @@ See http://www.FreeRTOS.org/RTOS-Cortex-M3-M4.html. */
 standard names. */
 #define xPortPendSVHandler PendSV_Handler
 #define vPortSVCHandler SVC_Handler
-
-#if configUSE_TICKLESS_IDLE == 2
-#define xPortSysTickHandler notUsedAtAll
-#else
-#define xPortSysTickHandler SysTick_Handler
-
-#endif
 
 /* Normal assert() semantics without relying on the provision of an assert.h
 header file. */

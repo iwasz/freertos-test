@@ -1,4 +1,5 @@
-#include
+#include "itoa.h"
+#include <string.h>
 
 /* reverse:  reverse string s in place */
 static void reverse (char s[])
@@ -41,7 +42,7 @@ void itoa (int n, char s[], int zeroPad)
         reverse (s);
 }
 
-void itoa (unsigned int n, char s[], int zeroPad)
+void itoau (unsigned int n, char s[], int zeroPad)
 {
         int i;
 

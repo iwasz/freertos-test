@@ -13,11 +13,11 @@
 #include <stm32l4xx_hal.h>
 #include <task.h>
 
-#if configUSE_TICKLESS_IDLE == 2
-// extern "C" void SysTick_Handler ()
-// { /* HAL_GPIO_TogglePin (GPIOA, GPIO_PIN_1); */
-// }
-#endif
+// #if configUSE_TICKLESS_IDLE == 2
+// // extern "C" void SysTick_Handler ()
+// // { /* HAL_GPIO_TogglePin (GPIOA, GPIO_PIN_1); */
+// // }
+// #endif
 
 /****************************************************************************/
 
@@ -62,9 +62,9 @@ static void prvFlashTask3 (void * /* pvParameters */)
 
 void appMain ()
 {
-        xTaskCreate (prvFlashTask1, "task1", 128, nullptr, 1, nullptr);
-        xTaskCreate (prvFlashTask2, "task2", 128, nullptr, 1, nullptr);
-        xTaskCreate (prvFlashTask3, "task3", 128, nullptr, 1, nullptr);
+        xTaskCreate (prvFlashTask1, "task1", 256, nullptr, 1, nullptr);
+        xTaskCreate (prvFlashTask2, "task2", 256, nullptr, 1, nullptr);
+        xTaskCreate (prvFlashTask3, "task3", 256, nullptr, 1, nullptr);
 
         vTaskStartScheduler ();
 

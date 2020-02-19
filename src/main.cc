@@ -27,6 +27,9 @@ int main ()
          * This thread is useful:
          * https://www.freertos.org/FreeRTOS_Support_Forum_Archive/November_2018/freertos_Tickless_idle_mode_and_wakeup_interrupts_30a858262fj.html
          */
+        __HAL_RCC_SYSCFG_CLK_ENABLE ();
+        __HAL_RCC_PWR_CLK_ENABLE ();
+
         HAL_Init ();
         SystemClock_Config ();
 
@@ -67,3 +70,13 @@ static void MX_GPIO_Init ()
 
         HAL_GPIO_WritePin (GPIOA, GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_4, GPIO_PIN_SET);
 }
+
+/****************************************************************************/
+
+namespace __gnu_cxx {
+void __verbose_terminate_handler ()
+{
+        while (true) {
+        }
+}
+} // namespace __gnu_cxx
