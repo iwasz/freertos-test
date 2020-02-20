@@ -47,9 +47,9 @@ int main ()
 #endif
 
         // logging::init ();
-        // MX_GPIO_Init ();
+        MX_GPIO_Init ();
 
-        uart::usart2Init ();
+        // uart::usart2Init ();
         appMain ();
 
         while (true) {
@@ -70,7 +70,7 @@ static void MX_GPIO_Init ()
         GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
         HAL_GPIO_Init (GPIOA, &GPIO_InitStruct);
 
-        HAL_GPIO_WritePin (GPIOA, GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_4, GPIO_PIN_SET);
+        HAL_GPIO_WritePin (GPIOA, GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_4, GPIO_PIN_RESET);
 }
 
 /****************************************************************************/

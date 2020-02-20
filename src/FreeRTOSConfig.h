@@ -48,16 +48,17 @@ extern "C" {
 settings within this file.  Therefore, to ensure all the functions in port.c
 build, this configuration file has all options turned on. */
 
-#define configUSE_TICKLESS_IDLE 2
-#define configUSE_PREEMPTION 1
-#define configTICK_RATE_HZ (1000)
+#define configUSE_TICKLESS_IDLE 0
 
-#if configUSE_TICKLESS_IDLE == 0
-#define configSYSTICK_CLOCK_HZ (16000)
+#if configUSE_TICKLESS_IDLE == 2
 // Undef this if Jeff's tickless implementation is used
+#define configTICK_USES_LSI 1
 #endif
 
-#define configTICK_USES_LSI 1
+#if configUSE_TICKLESS_IDLE == 2 && !defined(configTICK_USES_LSI)
+// Jeff's implementation does not use this. Others do.
+#define configSYSTICK_CLOCK_HZ (16000)
+#endif
 
 #ifndef configTICK_USES_LSI
 #if configUSE_TICKLESS_IDLE == 2
@@ -67,6 +68,8 @@ build, this configuration file has all options turned on. */
 #endif
 #endif
 
+#define configUSE_PREEMPTION 1
+#define configTICK_RATE_HZ (1000)
 #define configUSE_PORT_OPTIMISED_TASK_SELECTION 1
 #define configUSE_QUEUE_SETS 1
 #define configUSE_IDLE_HOOK 0

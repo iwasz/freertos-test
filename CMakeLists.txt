@@ -20,7 +20,7 @@ ADD_EXECUTABLE(${CMAKE_PROJECT_NAME}.elf
         "src/app_main.cc"
         "src/main.cc"
         # "src/tickless.c"
-        "src/lptimTick.c"
+        # "src/lptimTick.c"
         "src/stm32l4xx_it.c"
         "src/system_stm32l4xx.c"
         "src/libc-compat.c"
