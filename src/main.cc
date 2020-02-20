@@ -7,9 +7,9 @@
  ****************************************************************************/
 
 #include "app_main.h"
-#include "logging.h"
+// #include "logging.h"
+#include "uart.h"
 #include <FreeRTOS.h>
-#include <cassert>
 #include <cstdint>
 #include <portmacro.h>
 #include <stm32l4xx_hal.h>
@@ -46,8 +46,10 @@ int main ()
         // }
 #endif
 
-        logging::init ();
-        MX_GPIO_Init ();
+        // logging::init ();
+        // MX_GPIO_Init ();
+
+        uart::usart2Init ();
         appMain ();
 
         while (true) {
