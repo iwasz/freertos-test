@@ -48,7 +48,7 @@ extern "C" {
 settings within this file.  Therefore, to ensure all the functions in port.c
 build, this configuration file has all options turned on. */
 
-#define configUSE_TICKLESS_IDLE 1
+#define configUSE_TICKLESS_IDLE 0
 
 #if configUSE_TICKLESS_IDLE == 2
 // Undef this if Jeff's tickless implementation is used

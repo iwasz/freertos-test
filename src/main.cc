@@ -49,7 +49,7 @@ int main ()
         // logging::init ();
         MX_GPIO_Init ();
 
-        uart::usart2Init ();
+        uart::init ();
         appMain ();
 
         while (true) {
