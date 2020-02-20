@@ -54,16 +54,16 @@ static void prvFlashTask3 (void * /* pvParameters */)
         TickType_t xLastExecutionTime = xTaskGetTickCount ();
 
         for (;;) {
-                vTaskDelayUntil (&xLastExecutionTime, pdMS_TO_TICKS (100));
-                HAL_GPIO_TogglePin (GPIOA, GPIO_PIN_4);
+                // vTaskDelayUntil (&xLastExecutionTime, pdMS_TO_TICKS (100));
+                // HAL_GPIO_TogglePin (GPIOA, GPIO_PIN_4);
                 // logging::log ("Hello\r\n");
 
-                // static std::array<uint8_t, 128> data{};
-                // std::generate (data.begin (), data.end (), [] () -> uint8_t { return std::rand () % ('z' - 'a' + 1) + 'a'; });
+                static std::array<uint8_t, 128> data{};
+                std::generate (data.begin (), data.end (), [] () -> uint8_t { return std::rand () % ('z' - 'a' + 1) + 'a'; });
 
-                // if (!uart::send (data.data (), data.size ())) {
-                //         std::terminate ();
-                // }
+                if (!uart::send (data.data (), data.size ())) {
+                        std::terminate ();
+                }
         }
 }
 

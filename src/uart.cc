@@ -156,6 +156,9 @@ void usart2Init ()
         __HAL_LINKDMA (&huart2, hdmatx, dmaTx);
         HAL_DMA_Init (&dmaTx);
 
+        __HAL_DMA_DISABLE_IT (&dmaTx, DMA_IT_HT);
+        __HAL_DMA_ENABLE_IT (&dmaTx, (DMA_IT_TC | DMA_IT_TE));
+
         HAL_NVIC_SetPriority (DMA1_Channel7_IRQn, 6, 0);
         HAL_NVIC_EnableIRQ (DMA1_Channel7_IRQn);
 
@@ -163,6 +166,59 @@ void usart2Init ()
                 while (true) {
                 }
         }
+}
+
+/****************************************************************************/
+static void DMA_SetConfig (DMA_HandleTypeDef *hdma, uint32_t SrcAddress, uint32_t DstAddress, uint32_t DataLength)
+{
+        /* Clear all flags */
+        hdma->DmaBaseAddress->IFCR = (DMA_ISR_GIF1 << (hdma->ChannelIndex & 0x1cU));
+
+        /* Configure DMA Channel data length */
+        hdma->Instance->CNDTR = DataLength;
+
+        /* Memory to Peripheral */
+        if ((hdma->Init.Direction) == DMA_MEMORY_TO_PERIPH) {
+                /* Configure DMA Channel destination address */
+                hdma->Instance->CPAR = DstAddress;
+
+                /* Configure DMA Channel source address */
+                hdma->Instance->CMAR = SrcAddress;
+        }
+        /* Peripheral to Memory */
+        else {
+                /* Configure DMA Channel source address */
+                hdma->Instance->CPAR = SrcAddress;
+
+                /* Configure DMA Channel destination address */
+                hdma->Instance->CMAR = DstAddress;
+        }
+}
+
+void lowLevelTransmit (UART_HandleTypeDef *huart, uint8_t *pData, uint16_t Size)
+{
+        //     huart->pTxBuffPtr  = pData;
+        //     huart->TxXferSize  = Size;
+        //     huart->TxXferCount = Size;
+
+        //     huart->ErrorCode = HAL_UART_ERROR_NONE;
+        //     huart->gState = HAL_UART_STATE_BUSY_TX;
+
+        /* Enable the UART transmit DMA channel */
+        __HAL_DMA_DISABLE (&dmaTx);
+        DMA_SetConfig (&dmaTx, (uint32_t)pData, (uint32_t)&huart->Instance->TDR, Size);
+        __HAL_DMA_ENABLE (&dmaTx);
+
+        // if (HAL_DMA_Start_IT (&dmaTx, (uint32_t)pData, (uint32_t)&huart->Instance->TDR, Size) != HAL_OK) {
+        //         std::terminate ();
+        // }
+
+        /* Clear the TC flag in the ICR register */
+        __HAL_UART_CLEAR_FLAG (huart, UART_CLEAR_TCF);
+
+        /* Enable the DMA transfer for transmit request by setting the DMAT bit
+        in the UART CR3 register */
+        SET_BIT (huart->Instance->CR3, USART_CR3_DMAT);
 }
 
 /****************************************************************************/
@@ -180,9 +236,11 @@ bool send (uint8_t *data, size_t len, TickType_t timeout)
         xSemaphoreTake (txSemaphore, 0);
 
         // Start the transmission.
-        if (HAL_UART_Transmit_DMA (&huart2, data, len) != HAL_OK) {
-                std::terminate ();
-        }
+        // if (HAL_UART_Transmit_DMA (&huart2, data, len) != HAL_OK) {
+        //         std::terminate ();
+        // }
+
+        lowLevelTransmit (&huart2, data, len);
 
         /* Block on the semaphore to wait for the transmission to complete.  If the semaphore is obtained then xReturn will
                       get set to pdPASS.  If the semaphore take operation times out then xReturn will get set to pdFAIL.Note that, if the
