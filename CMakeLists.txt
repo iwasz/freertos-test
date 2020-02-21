@@ -35,6 +35,7 @@ ADD_EXECUTABLE(${CMAKE_PROJECT_NAME}.elf
         "${FREE_RTOS_ROOT}/queue.c"
         "${FREE_RTOS_ROOT}/tasks.c"
         "${FREE_RTOS_ROOT}/timers.c"
+        "${FREE_RTOS_ROOT}/stream_buffer.c"
         "${FREE_RTOS_ROOT}/portable/GCC/ARM_CM4F/port.c"
         "${FREE_RTOS_ROOT}/portable/GCC/ARM_CM4F/portmacro.h"
         "${FREE_RTOS_ROOT}/portable/MemMang/heap_4.c"

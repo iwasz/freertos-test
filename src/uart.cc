@@ -7,8 +7,9 @@
  ****************************************************************************/
 
 #include "uart.h"
+#include "gsl/gsl_assert"
+#include "portmacro.h"
 #include "projdefs.h"
-#include "stm32l476xx.h"
 #include <algorithm>
 #include <array>
 #include <cstdint>
@@ -18,6 +19,7 @@
 #include <gsl/gsl>
 #include <semphr.h>
 #include <stm32l4xx_hal.h>
+#include <stream_buffer.h>
 #include <sys/_stdint.h>
 
 namespace uart {
@@ -29,6 +31,11 @@ namespace {
 
         DMA_HandleTypeDef rxDma{};
         SemaphoreHandle_t rxSemaphore{};
+
+        StreamBufferHandle_t xStreamBuffer{};
+
+        // extern "C" void lineReceivingTask (void *pvParameters);
+
 } // namespace
 
 /****************************************************************************/
@@ -40,6 +47,9 @@ void init ()
 
         Expects (!rxSemaphore);
         rxSemaphore = xSemaphoreCreateBinary ();
+
+        xStreamBuffer = xStreamBufferCreate (100, 1);
+        // xTaskCreate (lineReceivingTask, nullptr, configMINIMAL_STACK_SIZE, nullptr, tskIDLE_PRIORITY + 1, nullptr);
 
         __HAL_RCC_GPIOA_CLK_ENABLE ();
         GPIO_InitTypeDef GPIO_InitStruct = {0};
@@ -62,10 +72,18 @@ void init ()
         huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
         huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
 
+        // Set to defaults.
+        huart2.Instance->CR1 = 0x00;
+        huart2.Instance->CR2 = 0x04;
+        huart2.Instance->CR3 = 0x08;
+
         if (HAL_UART_Init (&huart2) != HAL_OK) {
                 while (true) {
                 }
         }
+
+        HAL_NVIC_SetPriority (USART2_IRQn, configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY, 0);
+        HAL_NVIC_EnableIRQ (USART2_IRQn);
 
         // For TX transfers
         __HAL_RCC_DMA1_CLK_ENABLE ();
@@ -85,7 +103,7 @@ void init ()
         __HAL_DMA_DISABLE_IT (&txDma, DMA_IT_HT);
         __HAL_DMA_ENABLE_IT (&txDma, (DMA_IT_TC | DMA_IT_TE));
 
-        HAL_NVIC_SetPriority (DMA1_Channel7_IRQn, 6, 0);
+        HAL_NVIC_SetPriority (DMA1_Channel7_IRQn, configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY, 0);
         HAL_NVIC_EnableIRQ (DMA1_Channel7_IRQn);
 
         // For RX transfers
@@ -108,7 +126,7 @@ void init ()
         // Full transfer (transfer complete) and transfer error
         __HAL_DMA_ENABLE_IT (&rxDma, (DMA_IT_TC | DMA_IT_TE));
 
-        HAL_NVIC_SetPriority (DMA1_Channel6_IRQn, 6, 0);
+        HAL_NVIC_SetPriority (DMA1_Channel6_IRQn, configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY, 0);
         HAL_NVIC_EnableIRQ (DMA1_Channel6_IRQn);
 }
 
@@ -142,46 +160,46 @@ static void DMA_SetConfig (DMA_HandleTypeDef *hdma, uint32_t SrcAddress, uint32_
 
 /****************************************************************************/
 
-void lowLevelSend (UART_HandleTypeDef *huart, uint8_t const *pData, uint16_t Size)
+void lowLevelSend (uint8_t const *pData, uint16_t Size)
 {
         __HAL_DMA_DISABLE (&txDma);
-        DMA_SetConfig (&txDma, (uint32_t)pData, (uint32_t)&huart->Instance->TDR, Size);
+        DMA_SetConfig (&txDma, (uint32_t)pData, (uint32_t)&huart2.Instance->TDR, Size);
         __HAL_DMA_ENABLE (&txDma);
 
         /* Clear the TC flag in the ICR register */
-        __HAL_UART_CLEAR_FLAG (huart, UART_CLEAR_TCF);
+        __HAL_UART_CLEAR_FLAG (&huart2, UART_CLEAR_TCF);
 
         /* Enable the DMA transfer for transmit request by setting the DMAT bit
         in the UART CR3 register */
-        SET_BIT (huart->Instance->CR3, USART_CR3_DMAT);
+        SET_BIT (huart2.Instance->CR3, USART_CR3_DMAT);
 }
 
 /****************************************************************************/
 
-void lowLevelReceive (UART_HandleTypeDef *huart, uint8_t const *pData, uint16_t Size)
+void lowLevelReceive (uint8_t const *pData, uint16_t Size)
 {
         __HAL_DMA_DISABLE (&rxDma);
-        DMA_SetConfig (&rxDma, (uint32_t)&huart->Instance->RDR, (uint32_t)pData, Size);
+        DMA_SetConfig (&rxDma, (uint32_t)&huart2.Instance->RDR, (uint32_t)pData, Size);
         __HAL_DMA_ENABLE (&rxDma);
 
+        // TODO don't turn the ityerrupt on
         /* Enable the UART Parity Error Interrupt */
-        SET_BIT (huart->Instance->CR1, USART_CR1_PEIE);
+        // SET_BIT (huart2.Instance->CR1, USART_CR1_PEIE);
 
         /* Enable the UART Error Interrupt: (Frame error, noise error, overrun error) */
-        SET_BIT (huart->Instance->CR3, USART_CR3_EIE);
+        // SET_BIT (huart2.Instance->CR3, USART_CR3_EIE);
 
         /* Enable the DMA transfer for the receiver request by setting the DMAR bit
         in the UART CR3 register */
-        SET_BIT (huart->Instance->CR3, USART_CR3_DMAR);
+        SET_BIT (huart2.Instance->CR3, USART_CR3_DMAR);
 }
 
 /****************************************************************************/
 
-// TODO template with container.
-bool send (uint8_t const *data, size_t len, TickType_t timeout)
+Status send (uint8_t const *data, size_t len, TickType_t timeout)
 {
         if (len == 0) {
-                return true;
+                return Status::OK;
         }
 
         Expects (txSemaphore);
@@ -192,13 +210,13 @@ bool send (uint8_t const *data, size_t len, TickType_t timeout)
          * regular boolean variable, we would write "variable = false" here.
          */
         xSemaphoreTake (txSemaphore, 0);
-        lowLevelSend (&huart2, data, len);
+        lowLevelSend (data, len);
 
         /* Block on the semaphore to wait for the transmission to complete.  If the semaphore is obtained then xReturn will
                       get set to pdPASS.  If the semaphore take operation times out then xReturn will get set to pdFAIL.Note that, if the
                       interrupt occurs between UART_low_level_send() being called, and xSemaphoreTake() being called, thenthe event will
                       be latched in the binary semaphore, and the call to xSemaphoreTake() will return immediately.*/
-        return (xSemaphoreTake (txSemaphore, timeout) == pdTRUE);
+        return (xSemaphoreTake (txSemaphore, timeout) == pdTRUE) ? (Status::OK) : (Status::TIMEOUT);
 }
 
 /****************************************************************************/
@@ -207,11 +225,12 @@ Status receive (uint8_t *data, size_t len, TickType_t timeout)
 {
         Expects (rxSemaphore);
         xSemaphoreTake (rxSemaphore, 0);
-        lowLevelReceive (&huart2, data, len);
+        lowLevelReceive (data, len);
 
         if (xSemaphoreTake (rxSemaphore, timeout) == pdFALSE) {
                 uint32_t isr = huart2.Instance->ISR;
 
+                // Only one of the errors is returned, even thouh more than 1 can be present.
                 if ((isr & USART_ISR_PE) != 0) {
                         return Status::PARITY_ERROR;
                 }
@@ -233,6 +252,36 @@ Status receive (uint8_t *data, size_t len, TickType_t timeout)
 
         return Status::OK;
 }
+
+/****************************************************************************/
+
+Vector receiveLine (uint8_t *data, size_t maxlen, TickType_t timeout, LineEnd lineEnd)
+{
+        Expects (xStreamBuffer);
+        SET_BIT (huart2.Instance->CR1, USART_CR1_RXNEIE);
+
+        Vector line;
+        uint8_t c{};
+
+        while (true) {
+                if (xStreamBufferReceive (xStreamBuffer, &c, 1, timeout) == 0) {
+                        return line; // return TIMEOUT;
+                }
+
+                line.push_back (c);
+
+                if ((lineEnd == LineEnd::CR_LF && line.size () >= 2 && c == '\n' && line.at (line.size () - 2) == '\r')
+                    || (((lineEnd == LineEnd::EITHER && (c == '\r' || c == '\n')) || (lineEnd == LineEnd::LF && c == '\n')
+                         || (lineEnd == LineEnd::CR && c == '\r'))
+                        && !line.empty ())) {
+                        break;
+                }
+        }
+
+        return line;
+}
+
+bool clearLineBuffer () { return xStreamBufferReset (xStreamBuffer) == pdPASS; }
 
 /**
  * Uart TX dma.
@@ -363,5 +412,30 @@ extern "C" void DMA1_Channel6_IRQHandler ()
                 std::terminate ();
         }
 }
+
+/****************************************************************************/
+
+extern "C" void USART2_IRQHandler ()
+{
+        uint32_t isrflags = READ_REG (huart2.Instance->ISR);
+        uint32_t cr1its = READ_REG (huart2.Instance->CR1);
+
+        if (((isrflags & USART_ISR_RXNE) != RESET) && ((cr1its & USART_CR1_RXNEIE) != RESET)) {
+                auto c = (uint8_t) (huart2.Instance->RDR & (uint8_t)0x00FF);
+                BaseType_t higherPriorityTaskWoken{};
+                Expects (xStreamBuffer);
+                xStreamBufferSendFromISR (xStreamBuffer, &c, 1, &higherPriorityTaskWoken);
+                portYIELD_FROM_ISR (higherPriorityTaskWoken);
+                return;
+        }
+
+        /*
+         * Only to indicate, that some other IRQ source is turned on. I want only RXNE
+         * for efficiency reasons.
+         */
+        std::terminate ();
+}
+
+// extern "C" void lineReceivingTask (void *pvParameters) {}
 
 } // namespace uart

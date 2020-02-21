@@ -7,6 +7,7 @@
  ****************************************************************************/
 
 #include "logging.h"
+#include "projdefs.h"
 #include "uart.h"
 #include <FreeRTOS.h>
 #include <cstdlib>
@@ -23,14 +24,16 @@
 
 /****************************************************************************/
 
-void prvFlashTask1 (void * /* pvParameters */)
+void readLineTest (void * /* pvParameters */)
 {
-        TickType_t xLastExecutionTime = xTaskGetTickCount ();
+        using namespace uart;
 
         while (true) {
-                vTaskDelayUntil (&xLastExecutionTime, pdMS_TO_TICKS (10));
-                HAL_GPIO_TogglePin (GPIOA, GPIO_PIN_1);
-                // logging::log ("TESTTEST\r\n");
+                Vector line = receiveLine (nullptr, 0, pdMS_TO_TICKS (5000));
+
+                if (uart::send (line) != uart::Status::OK) {
+                        std::terminate ();
+                }
         }
 }
 
@@ -40,6 +43,8 @@ void prvFlashTask1 (void * /* pvParameters */)
  */
 void echoOverrunTest (void * /* pvParameters */)
 {
+        using namespace uart;
+
         while (true) {
                 static std::array<char, 16> buf{};
 
@@ -55,15 +60,14 @@ void echoOverrunTest (void * /* pvParameters */)
                  * would cause the OVERRUN_ERROR. Try to paste the first line of this whole comment. You would
                  * get an OVERUN_ERROR then, and RDR would equal 0x68 which is letter 'h'.
                  */
-                if (uart::Status status = uart::receive (buf, pdMS_TO_TICKS (5000));
-                    status != uart::Status::OK && status != uart::Status::TIMEOUT) {
-                        // std::terminate ();
+                if (Status status = receive (buf, pdMS_TO_TICKS (5000)); status != Status::OK && status != Status::TIMEOUT) {
+                        std::terminate ();
                 }
 
                 HAL_GPIO_TogglePin (GPIOA, GPIO_PIN_0);
 
-                // Send if there is anything tro send.
-                if (!uart::send (buf, pdMS_TO_TICKS (5000))) {
+                // Send if there is anything to send.
+                if (Status status = send (buf, pdMS_TO_TICKS (5000)); status != Status::OK) {
                         std::terminate ();
                 }
         }
@@ -88,7 +92,7 @@ void sendBufferTest (void * /* pvParameters */)
                 std::generate (data.begin (), data.end (), [] () -> uint8_t { return std::rand () % ('z' - 'a' + 1) + 'a'; });
 
                 // Send 128B and block this thread until it's done.
-                if (!uart::send (data)) {
+                if (uart::send (data) != uart::Status::OK) {
                         std::terminate ();
                 }
         }
@@ -98,8 +102,8 @@ void sendBufferTest (void * /* pvParameters */)
 
 void appMain ()
 {
-        // xTaskCreate (prvFlashTask1, "task1", 256, nullptr, 1, nullptr);
-        xTaskCreate (echoOverrunTest, "task2", 256, nullptr, 1, nullptr);
+        xTaskCreate (readLineTest, "task1", 256, nullptr, 1, nullptr);
+        // xTaskCreate (echoOverrunTest, "task2", 256, nullptr, 1, nullptr);
         // xTaskCreate (sendBufferTest, "task3", 256, nullptr, 1, nullptr);
 
         vTaskStartScheduler ();
