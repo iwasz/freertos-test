@@ -68,6 +68,14 @@ build, this configuration file has all options turned on. */
 #endif
 #endif
 
+#if configUSE_TICKLESS_IDLE == 2
+#define configPRE_SLEEP_PROCESSING(x)                                                                                                           \
+        MODIFY_REG (PWR->CR1, PWR_CR1_LPMS, PWR_CR1_LPMS_STOP1);                                                                                \
+        SET_BIT (SCB->SCR, ((uint32_t)SCB_SCR_SLEEPDEEP_Msk));
+
+#define configPOST_SLEEP_PROCESSING(x) CLEAR_BIT (SCB->SCR, ((uint32_t)SCB_SCR_SLEEPDEEP_Msk));
+#endif
+
 #define configUSE_PREEMPTION 1
 #define configTICK_RATE_HZ (1000)
 #define configUSE_PORT_OPTIMISED_TASK_SELECTION 1

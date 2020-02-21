@@ -281,6 +281,8 @@ Vector receiveLine (uint8_t *data, size_t maxlen, TickType_t timeout, LineEnd li
         return line;
 }
 
+/****************************************************************************/
+
 bool clearLineBuffer () { return xStreamBufferReset (xStreamBuffer) == pdPASS; }
 
 /**

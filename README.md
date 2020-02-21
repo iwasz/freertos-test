@@ -10,4 +10,8 @@ These are my "tests" of FreeRTOS running on STM32L476.
 * [ ] Change implementation to task notifications.
 * [ ] Use other uarts as well.
 * [ ] Connect one to another and write some automatic tests.
-* [ ] Return a status from send and receive. This is easily obtainable in case of a timeout.
+* [ ] Resturn bool from send and receive. 
+* [ ] Change Status enum to Error, and provide bitwise operations.
+* [ ] Add UART status query function. Return Error from there.
+* [ ] Receive line should also return some bool value (false in case of a timeout).
+* [ ] Template argument for receiveLine. A container to return.
