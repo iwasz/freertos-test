@@ -7,7 +7,6 @@
  ****************************************************************************/
 
 #include "logging.h"
-#include "projdefs.h"
 #include "uart.h"
 #include <FreeRTOS.h>
 #include <cstdlib>
@@ -28,51 +27,67 @@ void prvFlashTask1 (void * /* pvParameters */)
 {
         TickType_t xLastExecutionTime = xTaskGetTickCount ();
 
-        for (;;) {
+        while (true) {
                 vTaskDelayUntil (&xLastExecutionTime, pdMS_TO_TICKS (10));
                 HAL_GPIO_TogglePin (GPIOA, GPIO_PIN_1);
                 // logging::log ("TESTTEST\r\n");
         }
 }
 
-/****************************************************************************/
-
-void prvFlashTask2 (void * /* pvParameters */)
+/**
+ * This test reads 16B (using DMA) from the UART, toggles a GPIO if that succeeded, and
+ * then sends the buffer back.
+ */
+void echoOverrunTest (void * /* pvParameters */)
 {
-        TickType_t xLastExecutionTime = xTaskGetTickCount ();
+        while (true) {
+                static std::array<char, 16> buf{};
 
-        for (;;) {
-                // vTaskDelayUntil (&xLastExecutionTime, pdMS_TO_TICKS (10));
-                // logging::log ("HELLO\r\n");
-
-                static std::array<char, 4> buf{'a', 'b', 'c', 'd'};
-
-                if (!uart::receive (buf, pdMS_TO_TICKS (5000))) {
-                        std::terminate ();
+                /*
+                 * Try to receive the data. If it does not get anything in 5s, it stops the reception,
+                 * and checks for UART error statuses (ISR register). If no error status was set in the
+                 * register, it simply means, that we didn't get anything, and that's no error.
+                 *
+                 * If you type on the keyboard as you would normally do, the program runs without a problem,
+                 * but if you were to paste, say, 1000B of text, you would get an OVERRUN_ERROR. This is because
+                 * the program would try to send first 16B it received, and wait for them to be sent. During
+                 * this waiting period 17th byte woud land into the RDR, but it wouldn't get read, and 18th byte
+                 * would cause the OVERRUN_ERROR. Try to paste the first line of this whole comment. You would
+                 * get an OVERUN_ERROR then, and RDR would equal 0x68 which is letter 'h'.
+                 */
+                if (uart::Status status = uart::receive (buf, pdMS_TO_TICKS (5000));
+                    status != uart::Status::OK && status != uart::Status::TIMEOUT) {
+                        // std::terminate ();
                 }
 
                 HAL_GPIO_TogglePin (GPIOA, GPIO_PIN_0);
 
+                // Send if there is anything tro send.
                 if (!uart::send (buf, pdMS_TO_TICKS (5000))) {
                         std::terminate ();
                 }
         }
 }
 
-/****************************************************************************/
-
-static void prvFlashTask3 (void * /* pvParameters */)
+/**
+ * This test simply outputs a buffer (using DMA).
+ */
+void sendBufferTest (void * /* pvParameters */)
 {
         TickType_t xLastExecutionTime = xTaskGetTickCount ();
 
-        for (;;) {
+        while (true) {
+                /*
+                 * It does that once every 100ms. If this delay was commented out, the task would
+                 * send the buffer with maximum speed taking short breaks only to generate the data.
+                 */
                 vTaskDelayUntil (&xLastExecutionTime, pdMS_TO_TICKS (100));
-                // HAL_GPIO_TogglePin (GPIOA, GPIO_PIN_4);
-                // logging::log ("Hello\r\n");
 
+                // Generate 128B of random gibberish.
                 static std::array<uint8_t, 128> data{};
                 std::generate (data.begin (), data.end (), [] () -> uint8_t { return std::rand () % ('z' - 'a' + 1) + 'a'; });
 
+                // Send 128B and block this thread until it's done.
                 if (!uart::send (data)) {
                         std::terminate ();
                 }
@@ -84,8 +99,8 @@ static void prvFlashTask3 (void * /* pvParameters */)
 void appMain ()
 {
         // xTaskCreate (prvFlashTask1, "task1", 256, nullptr, 1, nullptr);
-        xTaskCreate (prvFlashTask2, "task2", 256, nullptr, 1, nullptr);
-        // xTaskCreate (prvFlashTask3, "task3", 256, nullptr, 1, nullptr);
+        xTaskCreate (echoOverrunTest, "task2", 256, nullptr, 1, nullptr);
+        // xTaskCreate (sendBufferTest, "task3", 256, nullptr, 1, nullptr);
 
         vTaskStartScheduler ();
 

@@ -15,6 +15,18 @@ namespace uart {
 
 constexpr TickType_t DEFAULT_UART_TIMEOUT = pdMS_TO_TICKS (100);
 
+/**
+ * UART status.
+ */
+enum class Status {
+        OK,
+        TIMEOUT, // Timeout waiting on semaphore, or other OS primitive
+        PARITY_ERROR,
+        FRAMING_ERROR,
+        NOISE_ERROR,
+        OVERRUN_ERROR // Occurs when new byte arrived while there's still unread one in the RDR register.
+};
+
 void init ();
 
 /**
@@ -39,7 +51,7 @@ template <typename Con> bool send (Con const &container, TickType_t timeout = DE
         return send (reinterpret_cast<uint8_t const *> (container.data ()), container.size (), timeout);
 }
 
-bool receive (uint8_t *data, size_t len, TickType_t timeout = DEFAULT_UART_TIMEOUT);
+Status receive (uint8_t *data, size_t len, TickType_t timeout = DEFAULT_UART_TIMEOUT);
 
 /**
  * Receives exactly conteinr.size() bytes and stores them in the container.
@@ -47,7 +59,7 @@ bool receive (uint8_t *data, size_t len, TickType_t timeout = DEFAULT_UART_TIMEO
  * Assumptions : Con have to have data () member, and size () member. For example:
  * std::array <uint8_t, 16>, std::vector <uint8_t> etc.
  */
-template <typename Con, typename = int> bool receive (Con &container, TickType_t timeout = DEFAULT_UART_TIMEOUT)
+template <typename Con, typename = int> Status receive (Con &container, TickType_t timeout = DEFAULT_UART_TIMEOUT)
 {
         return receive (reinterpret_cast<uint8_t *> (container.data ()), container.size (), timeout);
 }

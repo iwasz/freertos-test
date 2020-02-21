@@ -1,3 +1,6 @@
+# What this is
+These are my "tests" of FreeRTOS running on STM32L476.
+
 # Problems, todos, notes
 ## General
 * [x] The system tick is not working before the scheduler is created, so stm32-hal routines can block indefinitely. 
@@ -5,3 +8,6 @@
 
 # UART
 * [ ] Change implementation to task notifications.
+* [ ] Use other uarts as well.
+* [ ] Connect one to another and write some automatic tests.
+* [ ] Return a status from send and receive. This is easily obtainable in case of a timeout.

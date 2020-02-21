@@ -7,6 +7,8 @@
  ****************************************************************************/
 
 #include "uart.h"
+#include "projdefs.h"
+#include "stm32l476xx.h"
 #include <algorithm>
 #include <array>
 #include <cstdint>
@@ -16,6 +18,7 @@
 #include <gsl/gsl>
 #include <semphr.h>
 #include <stm32l4xx_hal.h>
+#include <sys/_stdint.h>
 
 namespace uart {
 namespace {
@@ -177,6 +180,10 @@ void lowLevelReceive (UART_HandleTypeDef *huart, uint8_t const *pData, uint16_t 
 // TODO template with container.
 bool send (uint8_t const *data, size_t len, TickType_t timeout)
 {
+        if (len == 0) {
+                return true;
+        }
+
         Expects (txSemaphore);
 
         /*
@@ -196,12 +203,35 @@ bool send (uint8_t const *data, size_t len, TickType_t timeout)
 
 /****************************************************************************/
 
-bool receive (uint8_t *data, size_t len, TickType_t timeout)
+Status receive (uint8_t *data, size_t len, TickType_t timeout)
 {
         Expects (rxSemaphore);
         xSemaphoreTake (rxSemaphore, 0);
         lowLevelReceive (&huart2, data, len);
-        return (xSemaphoreTake (rxSemaphore, timeout) == pdTRUE);
+
+        if (xSemaphoreTake (rxSemaphore, timeout) == pdFALSE) {
+                uint32_t isr = huart2.Instance->ISR;
+
+                if ((isr & USART_ISR_PE) != 0) {
+                        return Status::PARITY_ERROR;
+                }
+
+                if ((isr & USART_ISR_FE) != 0) {
+                        return Status::FRAMING_ERROR;
+                }
+
+                if ((isr & USART_ISR_NE) != 0) {
+                        return Status::NOISE_ERROR;
+                }
+
+                if ((isr & USART_ISR_ORE) != 0) {
+                        return Status::OVERRUN_ERROR;
+                }
+
+                return Status::TIMEOUT;
+        }
+
+        return Status::OK;
 }
 
 /**
