@@ -98,13 +98,38 @@ void sendBufferTest (void * /* pvParameters */)
         }
 }
 
+/****************************************************************************/
+
+void logA (void * /* params */)
+{
+        TickType_t xLastExecutionTime = xTaskGetTickCount ();
+
+        while (true) {
+                vTaskDelayUntil (&xLastExecutionTime, pdMS_TO_TICKS (10));
+                logging::log ("Hello world");
+        }
+}
+
+void logB (void * /* params */)
+{
+        TickType_t xLastExecutionTime = xTaskGetTickCount ();
+
+        while (true) {
+                vTaskDelayUntil (&xLastExecutionTime, pdMS_TO_TICKS (10));
+                logging::log ("Hello TASK B");
+        }
+}
+
 /*****************************************************************************/
 
 void appMain ()
 {
-        xTaskCreate (readLineTest, "task1", 256, nullptr, 1, nullptr);
+        // xTaskCreate (readLineTest, "task1", 256, nullptr, 1, nullptr);
         // xTaskCreate (echoOverrunTest, "task2", 256, nullptr, 1, nullptr);
         // xTaskCreate (sendBufferTest, "task3", 256, nullptr, 1, nullptr);
+
+        xTaskCreate (logA, "logA", configMINIMAL_STACK_SIZE, nullptr, 0, nullptr);
+        xTaskCreate (logB, "logB", configMINIMAL_STACK_SIZE, nullptr, 0, nullptr);
 
         vTaskStartScheduler ();
 

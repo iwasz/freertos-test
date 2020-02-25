@@ -7,7 +7,7 @@
  ****************************************************************************/
 
 #include "app_main.h"
-// #include "logging.h"
+#include "logging.h"
 #include "uart.h"
 #include <FreeRTOS.h>
 #include <cstdint>
@@ -46,10 +46,10 @@ int main ()
         // }
 #endif
 
-        // logging::init ();
         MX_GPIO_Init ();
 
         uart::init ();
+        logging::init ();
         appMain ();
 
         while (true) {

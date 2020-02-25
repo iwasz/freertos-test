@@ -15,6 +15,28 @@
 #include <etl/vector.h>
 #include <stdint.h>
 
+/*
+Variables:
+
+* DEFAULT_UART_TIMEOUT
+* line buffer size
+GPIO ports
+GPIO pins
+UART number
+* urat irq priority
+urat irq isr
+
+TX dma number
+TX dma channel number
+* TX dma irq priority
+TX dma irq ISR
+
+RX dma number
+RX dma channel number
+* RX dma irq priority
+RX dma irq ISR
+*/
+
 /**
  * Simple 8N1 uart implementation blocking on a RTOS primitive (like a semaphore, but
  * plans are to switch to a task notification).
@@ -53,6 +75,7 @@ void init ();
  * many threads. Mutual exclusion has to be added in such scenarios.
  */
 Status send (uint8_t const *data, size_t len, TickType_t timeout = DEFAULT_UART_TIMEOUT);
+Status send (const char *str, TickType_t timeout = DEFAULT_UART_TIMEOUT);
 
 /**
  * Sends all teh contents of the container.

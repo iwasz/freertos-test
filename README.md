@@ -7,11 +7,12 @@ These are my "tests" of FreeRTOS running on STM32L476.
   * My solution to this is is to bypass every HAL function that uses a timeout. HAL uses its own "locking" mechanisms, so they also have to be removed anyway (I see no point of having RTOS semaphores and HAL __HAL_LOCK / __HAL_UNLOCK calls).
 
 # UART
-* [ ] Change implementation to task notifications.
 * [ ] Use other uarts as well.
+* [x] Logging.
 * [ ] Connect one to another and write some automatic tests.
-* [ ] Resturn bool from send and receive. 
+* [ ] Return bool from ```send``` and ```receive```. 
 * [ ] Change Status enum to Error, and provide bitwise operations.
 * [ ] Add UART status query function. Return Error from there.
 * [ ] Receive line should also return some bool value (false in case of a timeout).
 * [ ] Template argument for receiveLine. A container to return.
+* [ ] Change implementation to task notifications.

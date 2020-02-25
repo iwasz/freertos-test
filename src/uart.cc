@@ -49,7 +49,6 @@ void init ()
         rxSemaphore = xSemaphoreCreateBinary ();
 
         xStreamBuffer = xStreamBufferCreate (100, 1);
-        // xTaskCreate (lineReceivingTask, nullptr, configMINIMAL_STACK_SIZE, nullptr, tskIDLE_PRIORITY + 1, nullptr);
 
         __HAL_RCC_GPIOA_CLK_ENABLE ();
         GPIO_InitTypeDef GPIO_InitStruct = {0};
@@ -218,6 +217,10 @@ Status send (uint8_t const *data, size_t len, TickType_t timeout)
                       be latched in the binary semaphore, and the call to xSemaphoreTake() will return immediately.*/
         return (xSemaphoreTake (txSemaphore, timeout) == pdTRUE) ? (Status::OK) : (Status::TIMEOUT);
 }
+
+/*--------------------------------------------------------------------------*/
+
+Status send (const char *str, TickType_t timeout) { return send (reinterpret_cast<uint8_t const *> (str), strlen (str), timeout); }
 
 /****************************************************************************/
 
@@ -437,7 +440,5 @@ extern "C" void USART2_IRQHandler ()
          */
         std::terminate ();
 }
-
-// extern "C" void lineReceivingTask (void *pvParameters) {}
 
 } // namespace uart
